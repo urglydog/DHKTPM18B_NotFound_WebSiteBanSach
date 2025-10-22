@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +40,9 @@ public class Book {
 
     @Column(name = "stock_quantity", nullable = false)
     Integer stockQuantity;
+
+    @Column(name = "publish_date")
+    LocalDate publishDate;
 
     @Column(columnDefinition = "TEXT")
     String description;
@@ -90,11 +94,12 @@ public class Book {
         AVAILABLE, OUT_OF_STOCK, DISCONTINUED
     }
 
-    public Book(String title, String isbn, Double price, Integer stockQuantity, String description, Status status) {
+    public Book(String title, String isbn, Double price, Integer stockQuantity, LocalDate publishDate,String description, Status status) {
         this.title = title;
         this.isbn = isbn;
         this.price = price;
         this.stockQuantity = stockQuantity;
+        this.publishDate = publishDate;
         this.description = description;
         this.status = status;
     }
