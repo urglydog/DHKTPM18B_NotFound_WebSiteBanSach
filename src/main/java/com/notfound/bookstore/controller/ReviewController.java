@@ -3,17 +3,15 @@ package com.notfound.bookstore.controller;
 import com.notfound.bookstore.model.dto.request.reviewrequest.CreateReviewRequest;
 import com.notfound.bookstore.model.dto.response.ApiResponse;
 import com.notfound.bookstore.model.dto.response.reviewresponse.ReviewResponse;
-import com.notfound.bookstore.model.entity.Review;
 import com.notfound.bookstore.service.ReviewService;
+import com.notfound.bookstore.service.impl.ReviewServiceImpl;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
-import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController

@@ -31,8 +31,15 @@ public enum ErrorCode {
     GATEWAY_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, 5040, "Gateway timeout."),
     INITIALIZATION_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, 5500, "Service initialization failure."),
 
+    // --- TOKEN ERRORS ---
+    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, 2000, "Token has expired."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, 2004, "Invalid token."),
+    INVALID_TOKEN_TYPE(HttpStatus.UNAUTHORIZED, 2002, "Invalid token type."),
+
     // ==== Lỗi xác thực/người dùng (nhánh con của 4xx) ====
     USER_EXISTED(HttpStatus.CONFLICT, 2001, "User already exists."),
+    MAIL_NOT_EXISTED(HttpStatus.NOT_FOUND, 2003, "Mail not exists"),
+    TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, 4290, "OTP chưa hết hạn, vui lòng thử lại sau."),
     USER_NOT_EXISTED(HttpStatus.NOT_FOUND, 2002, "User not found."),
     BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, 3001, "Book not found."),
     INSUFFICIENT_STOCK(HttpStatus.CONFLICT, 3002, "Insufficient stock available."),

@@ -2,6 +2,7 @@ package com.notfound.bookstore.controller;
 
 import com.notfound.bookstore.model.entity.Book;
 import com.notfound.bookstore.service.BookService;
+import com.notfound.bookstore.service.impl.BookServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

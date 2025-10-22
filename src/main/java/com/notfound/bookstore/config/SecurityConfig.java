@@ -1,9 +1,11 @@
 package com.notfound.bookstore.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -22,14 +24,17 @@ import javax.crypto.spec.SecretKeySpec;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Autowired
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
     private final String[] PUBLIC_ENDPOINTS = {
             "/api/public/**",
-            "/api/auth/login",
+            "/api/auth/**",
             "/api/auth/register",
             "/api/auth/introspect",
             "/api/review/book/{bookId}",
             "/api/auth/introspect",
-            "/api/books/**"
+            "/api/books/**",
     };
 
     @Value("${jwt.signerKey}")
@@ -48,6 +53,13 @@ public class SecurityConfig {
                                 jwtConfigurer.decoder(jwtDecoder())
                                         .jwtAuthenticationConverter(jwtAuthenticationConverter())
                         )
+                )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(Customizer.withDefaults())
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )
                 .csrf(AbstractHttpConfigurer::disable);
 
