@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -35,10 +36,12 @@ public class Review {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonBackReference
     User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", nullable = false)
+    @JsonBackReference
     Book book;
 
     public Review(String comment, Integer rating, User user, Book book) {

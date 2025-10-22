@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.notfound.bookstore.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
@@ -54,6 +55,7 @@ public class User {
     List<Address> addresses;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
     List<Review> reviews;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
