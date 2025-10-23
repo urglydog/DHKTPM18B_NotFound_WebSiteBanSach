@@ -24,6 +24,13 @@ public enum ErrorCode {
     INVALID_ARGUMENTS(HttpStatus.BAD_REQUEST, 4200, "Invalid request parameters."),
 
     // ==== 5xx: Lỗi phía server ====
+    //Lỗi
+    ERROR_ENCODE(HttpStatus.INTERNAL_SERVER_ERROR, 3005, "Error encoding URL parameters."),
+    ERROR_CREATE_HMACSHA512(HttpStatus.INTERNAL_SERVER_ERROR, 3000, "Error creating HMAC-SHA512 signature."),
+    INVALID_VNPAY_SIGNATURE(HttpStatus.BAD_REQUEST, 3001, "Invalid VNPay signature."),
+    VNPAY_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, 3002, "Payment amount mismatch."),
+    VNPAY_TRANSACTION_FAILED(HttpStatus.BAD_REQUEST, 3003, "VNPay transaction failed."),
+    VNPAY_CONFIG_MISSING(HttpStatus.INTERNAL_SERVER_ERROR, 3004, "VNPay configuration is missing."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 5000, "Unexpected internal server error."),
     NOT_IMPLEMENTED(HttpStatus.NOT_IMPLEMENTED, 5010, "Feature not implemented."),
     BAD_GATEWAY(HttpStatus.BAD_GATEWAY, 5020, "Invalid response from upstream server."),
@@ -51,6 +58,7 @@ public enum ErrorCode {
 
     // ==== Lỗi hệ thống không phân loại ====
     UNCATEGORIZED_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 9999, "Uncategorized error");
+
 
     private final HttpStatus httpStatus;
     private final int code;
