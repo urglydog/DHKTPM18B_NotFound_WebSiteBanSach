@@ -1,4 +1,4 @@
 package com.notfound.bookstore.model.enums;
 
-public class PaymentStatus {
+public enum PaymentStatus {
 }

@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 @Repository
 public interface CartRepository extends JpaRepository<Cart, UUID> {
+    // Đếm số lượng item trong giỏ
+    Long countByCartID(UUID cartId);
 }

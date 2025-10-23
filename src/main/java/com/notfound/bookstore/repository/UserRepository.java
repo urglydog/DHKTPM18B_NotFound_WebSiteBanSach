@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -29,7 +30,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             String username, String email, Pageable pageable);
 
     // Kiểm tra user đã từng đặt hàng chưa (để xóa)
-    @Query("SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END FROM Order o WHERE o.user.id = :userId")
-    boolean hasOrders(UUID userId);
+    @Query("SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END FROM Order o WHERE o.customer.id = :userId")
+    boolean hasOrders(@Param("userId") UUID userId);
 
 }

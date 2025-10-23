@@ -1,4 +1,7 @@
 package com.notfound.bookstore.service;
 
-public class UserService {
+public interface UserService {
+    boolean existsByEmail(String email);
+
+    void resetPassword(String email, String newPassword);
 }

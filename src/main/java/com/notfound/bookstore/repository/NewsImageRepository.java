@@ -11,5 +11,5 @@ import java.util.UUID;
 @Repository
 public interface NewsImageRepository extends JpaRepository<NewsImage, UUID> {
     List<NewsImage> findByNews(News news);
-    List<NewsImage> findByNewsId(UUID newsId);
+    List<NewsImage> findByNewsNewsID(UUID newsId);
 }

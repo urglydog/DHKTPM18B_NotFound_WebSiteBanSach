@@ -26,6 +26,15 @@ public class Promotion {
     @Column(nullable = false)
     String name;
 
+    @Column(unique = true, nullable = false)
+    String code;
+
+    @Column(name = "usage_count", nullable = false)
+    Integer usageCount = 0;
+
+    @Column(name = "usage_limit", nullable = false)
+    Integer usageLimit = 100;
+
     @Column(name = "discount_percent", nullable = false)
     Double discountPercent;
 
@@ -61,5 +70,17 @@ public class Promotion {
         this.endDate = endDate;
         this.description = description;
         this.status = Status.ACTIVE;
+    }
+
+    public void incrementUsageCount() {
+        this.usageCount++;
+    }
+
+    public boolean isValid() {
+        LocalDate now = LocalDate.now();
+        return status == Status.ACTIVE
+                && !now.isBefore(startDate)
+                && !now.isAfter(endDate)
+                && usageCount < usageLimit;
     }
 }
