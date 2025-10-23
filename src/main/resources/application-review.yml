@@ -1,0 +1,54 @@
+spring:
+  datasource:
+    url: jdbc:mysql://13.54.2.223:3306/bookstore_db?useSSL=false&serverTimezone=UTC
+    username: admin
+    password: bookstore_aws_not_found
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+  data:
+    redis:
+      host: redis-15365.crce219.us-east-1-4.ec2.redns.redis-cloud.com
+      port: 15365
+      username: default
+      password: GqnnpkZYKkGNA2l59bwpqK1MJlgSqRzh
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: duongsatwintoplegends@gmail.com
+    password: krywsccybyojfugl
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+jwt:
+  signerKey: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
+  valid-duration: 3600
+  refreshable-duration: 2592000
+
+cloudinary:
+  cloud-name:
+  api-key:
+  api-secret:
+
+payment:
+  vnPay:
+    tmnCode: Q02GXZME
+    secretKey: 65YVK63FS5UUPFKE4UJMC1PMFOWSHASP
+    url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+    returnUrl: http://localhost:8080/api/payment/vnpay/callback
+    version: 2.1.0
+    command: pay
+    orderType: other
