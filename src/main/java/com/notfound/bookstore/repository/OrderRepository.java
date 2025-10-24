@@ -2,6 +2,7 @@ package com.notfound.bookstore.repository;
 
 import com.notfound.bookstore.model.entity.CartItem;
 import com.notfound.bookstore.model.entity.Order;
+import com.notfound.bookstore.model.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -17,10 +18,10 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findByCustomerId(UUID customerId);
 
     // Tìm orders theo status
-    List<Order> findByStatus(Order.OrderStatus status);
+    List<Order> findByStatus(OrderStatus status);
 
     // Tìm orders theo customer và status
-    List<Order> findByCustomerIdAndStatus(UUID customerId, Order.OrderStatus status);
+    List<Order> findByCustomerIdAndStatus(UUID customerId, OrderStatus status);
 
     // Tính tổng tiền theo customer
     @Query("SELECT SUM(o.totalAmount) FROM Order o WHERE o.customer.id = :customerId")

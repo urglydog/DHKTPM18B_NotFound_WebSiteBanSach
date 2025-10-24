@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.entity;
 
+import com.notfound.bookstore.model.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -13,6 +14,7 @@ import java.util.UUID;
 @Table(name = "payments")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "order")
@@ -37,13 +39,11 @@ public class Payment {
     @Column(nullable = false)
     PaymentStatus status;
 
+    String transactionId;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     Order order;
-
-    public enum PaymentStatus {
-        COMPLETED, INCOMPLETED, PENDING, FAILED, REFUNDED
-    }
 
     public Payment(String paymentMethod, Double amount, Order order) {
         this.paymentMethod = paymentMethod;
