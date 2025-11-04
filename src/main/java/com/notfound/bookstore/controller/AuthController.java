@@ -1,12 +1,10 @@
 package com.notfound.bookstore.controller;
 
 import com.notfound.bookstore.exception.ErrorCode;
-import com.notfound.bookstore.exception.AppException;
 import com.notfound.bookstore.model.dto.request.userrequest.EmailRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.LoginRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.RegisterRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.ResetPasswordRequest;
-import com.notfound.bookstore.model.dto.request.userrequest.ChangePasswordRequest;
 import com.notfound.bookstore.model.dto.response.ApiResponse;
 import com.notfound.bookstore.model.dto.response.userresponse.AuthResponse;
 import com.notfound.bookstore.service.AuthService;
@@ -14,23 +12,14 @@ import com.notfound.bookstore.service.EmailService;
 import com.notfound.bookstore.service.RedisService;
 import com.notfound.bookstore.service.UserService;
 import jakarta.mail.MessagingException;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
-/**
- * Controller xử lý các chức năng xác thực và phân quyền
- * Bao gồm đăng ký, đăng nhập, quên mật khẩu và OAuth với Google
- */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -42,12 +31,6 @@ public class AuthController {
     UserService userService;
     EmailService emailService;
 
-    /**
-     * Đăng ký tài khoản mới
-     *
-     * @param request Thông tin đăng ký bao gồm username, email, mật khẩu và các thông tin cá nhân
-     * @return Thông tin xác thực sau khi đăng ký thành công (token và thông tin user)
-     */
     @PostMapping("/register")
     public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse authResponse = authService.register(request);
@@ -58,42 +41,16 @@ public class AuthController {
                 .build();
     }
 
-    /**
-     * Đăng nhập vào hệ thống
-     *
-     * @param request Thông tin đăng nhập (email và mật khẩu)
-     * @return Thông tin xác thực sau khi đăng nhập thành công (token và thông tin user)
-     */
     @PostMapping("/login")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse authResponse = authService.login(request);
         return ApiResponse.<AuthResponse>builder()
                 .code(1000)
-                .message("Đăng nhập thành công!")
+                .message("Đăng nhập thành công")
                 .result(authResponse)
                 .build();
     }
 
-    @PutMapping("/change-password")
-    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request, Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
-        authService.changePassword(authentication.getName(), request);
-        return ApiResponse.<Void>builder()
-                .code(1000)
-                .message("Đổi mật khẩu thành công")
-                .build();
-    }
-
-    /**
-     * Gửi mã OTP để đặt lại mật khẩu
-     * OTP có hiệu lực trong 5 phút và được lưu trong Redis
-     *
-     * @param request Email cần gửi OTP
-     * @return Kết quả gửi OTP
-     * @throws MessagingException Nếu có lỗi khi gửi email
-     */
     @PostMapping("/send-otp")
     public ApiResponse<Void> sendOtp(@RequestBody EmailRequest request) throws MessagingException {
         String email = request.getEmail();
@@ -122,13 +79,6 @@ public class AuthController {
                 .build();
     }
 
-    /**
-     * Xác thực OTP và đặt lại mật khẩu mới
-     * Người dùng chỉ được nhập sai OTP tối đa 5 lần
-     *
-     * @param request Thông tin bao gồm email, OTP, mật khẩu mới và xác nhận mật khẩu
-     * @return Kết quả đặt lại mật khẩu
-     */
     @PostMapping("/verify-otp")
     public ApiResponse<Void> verifyOtp(@RequestBody ResetPasswordRequest request) {
         String email = request.getEmail();
@@ -175,13 +125,6 @@ public class AuthController {
 
     }
 
-    /**
-     * Gửi email xác thực tài khoản
-     * Email chứa link xác thực để kích hoạt tài khoản
-     *
-     * @param request Email cần xác thực
-     * @return Kết quả gửi email xác thực
-     */
     @PostMapping("/verify-email")
     public ApiResponse<Void> verifyEmail(@RequestBody EmailRequest request) {
         String email = request.getEmail();
@@ -202,71 +145,20 @@ public class AuthController {
                 .build();
     }
 
-    /**
-     * Xác nhận email thông qua token
-     * Endpoint này được gọi khi người dùng click vào link trong email xác thực
-     *
-     * @param token Token xác thực từ email
-     * @return Kết quả xác thực email
-     */
     @GetMapping("/confirm-email")
-    public void confirmEmail(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
-        try {
-            if (token == null || token.isEmpty()) {
-                String errorUrl = "http://localhost:3000/error?message=" +
-                        URLEncoder.encode("Token không hợp lệ", StandardCharsets.UTF_8);
-                response.sendRedirect(errorUrl);
-                return;
-            }
+    public ApiResponse<Void> confirmEmail(@RequestParam("token") String token) {
 
-            String email = authService.validateEmailVerificationToken(token);
-
-            // Redirect về trang success khi xác thực thành công
-            String successUrl = "http://localhost:3000/success?email=" +
-                    URLEncoder.encode(email, StandardCharsets.UTF_8);
-            response.sendRedirect(successUrl);
-
-        } catch (AppException e) {
-            String errorUrl = "http://localhost:3000/error?message=" +
-                    URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
-            response.sendRedirect(errorUrl);
-        } catch (Exception e) {
-            String errorUrl = "http://localhost:3000/error?message=" +
-                    URLEncoder.encode("Xác thực email thất bại", StandardCharsets.UTF_8);
-            response.sendRedirect(errorUrl);
-        }
-    }
-
-    /**
-     * Xử lý callback từ Google OAuth
-     * Đăng nhập hoặc tạo tài khoản mới thông qua Google
-     * Sau đó redirect về frontend (ví dụ: http://localhost:3000/)
-     *
-     * Lưu ý: để đơn giản, token được truyền về FE qua query param.
-     * FE cần đọc token từ URL và lưu vào localStorage/sessionStorage.
-     */
-    @GetMapping("/google/callback")
-    public void googleCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
-        // Nếu không có code hoặc rỗng → redirect về FE với lỗi
-        if (code == null || code.isEmpty()) {
-            String errorUrl = "http://localhost:3000/?error=" +
-                    URLEncoder.encode("google_invalid_code", StandardCharsets.UTF_8);
-            response.sendRedirect(errorUrl);
-            return;
+        if (token == null) {
+            return ApiResponse.<Void>builder()
+                    .code(4000)
+                    .message("Xác thực không thành công")
+                    .build();
         }
 
-        try {
-            AuthResponse authResponse = authService.handleGoogleOAuthCallback(code);
-
-            // Truyền token cho FE qua query param (hoặc có thể dùng cookie tùy thiết kế)
-            String redirectUrl = "http://localhost:3000/?token=" +
-                    URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8);
-
-            response.sendRedirect(redirectUrl);
-        } catch (Exception e) {
-            String errorUrl = "http://localhost:3000/?error=" +
-                    URLEncoder.encode("google_login_failed", StandardCharsets.UTF_8);
-            response.sendRedirect(errorUrl);
-        }
+        String email = authService.validateEmailVerificationToken(token);
+        return ApiResponse.<Void>builder()
+                .code(200)
+                .message("Xác thực email thành công " + email)
+                .build();
     }
 }

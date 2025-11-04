@@ -33,7 +33,6 @@ public class DataInitializer {
                             .username("admin")
                             .password(passwordEncoder.encode("admin"))
                             .role(Role.ADMIN)
-                            .points(0)
                             .build();
                     userRepository.save(user);
                     log.warn("admin user has been created with default password");
