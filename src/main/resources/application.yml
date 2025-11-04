@@ -1,0 +1,37 @@
+# ==========================================
+# APPLICATION CONFIGURATION
+# ==========================================
+# File này chứa cấu hình chung cho tất cả profiles
+# Các cấu hình riêng cho từng môi trường nằm trong:
+# - application-develop.yml (Development - Local)
+# - application-review.yml (Review/Staging - AWS)
+
+spring:
+  # Chọn profile mặc định khi chạy ứng dụng
+  # Có thể override bằng:
+  # - Biến môi trường: SPRING_PROFILES_ACTIVE=review
+  # - VM Options: -Dspring.profiles.active=review
+  # - IntelliJ Run Configuration: Active profiles: review
+  profiles:
+    active: develop
+
+  # Cấu hình chung cho tất cả profiles
+  application:
+    name: bookstore
+
+  # Server configuration
+  server:
+    port: 8080
+
+# JWT Configuration (chung cho tất cả profiles)
+jwt:
+  signerKey: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
+  valid-duration: 3600  # 1 giờ
+  refreshable-duration: 2592000  # 30 ngày
+
+# Cloudinary Configuration (chung cho tất cả profiles)
+# Cần điền thông tin từ Cloudinary dashboard
+cloudinary:
+  cloud-name:
+  api-key:
+  api-secret:
