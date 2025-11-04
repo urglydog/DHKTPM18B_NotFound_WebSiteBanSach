@@ -19,11 +19,12 @@ src/main/resources/
 - **Dùng cho**: Development local
 
 ### 2. **review** (Review/Staging - AWS)
-- **Database**: AWS MySQL (`13.54.2.223:3306`)
-- **Username**: `admin`
-- **Password**: `bookstore_aws_not_found`
+- **Database**: AWS MySQL (cấu hình qua biến môi trường)
+- **Username**: Cấu hình qua biến môi trường `DB_USERNAME`
+- **Password**: Cấu hình qua biến môi trường `DB_PASSWORD`
 - **ddl-auto**: `update`
 - **Dùng cho**: Testing trên môi trường AWS
+- **Lưu ý**: Cần cấu hình biến môi trường trước khi chạy (xem file `.env.example`)
 
 ## 🚀 Cách chuyển đổi Profile
 
@@ -75,12 +76,13 @@ Trong IntelliJ Run Configuration, thêm vào **VM options**:
 
 | Thành phần | develop | review |
 |------------|---------|--------|
-| **Database Host** | localhost:3306 | 13.54.2.223:3306 |
-| **Database User** | root | admin |
-| **Database Password** | root | bookstore_aws_not_found |
+| **Database Host** | localhost:3306 | Cấu hình qua `DB_HOST` |
+| **Database User** | root | Cấu hình qua `DB_USERNAME` |
+| **Database Password** | root | Cấu hình qua `DB_PASSWORD` |
 | **Hibernate Dialect** | MySQLDialect | MySQL8Dialect |
 | **ddl-auto** | update | update |
 | **VNPay** | Có (sandbox) | Có (sandbox) |
+| **Config** | Hard-coded | Biến môi trường |
 
 ## 🔍 Kiểm tra Profile đang dùng
 
@@ -98,7 +100,11 @@ The following profiles are active: review
 1. **Profile mặc định**: `develop` (được set trong `application.yml`)
 2. **Config chung**: JWT, Cloudinary trong `application.yml` dùng chung cho tất cả profiles
 3. **Config riêng**: Database, Mail, Redis trong từng profile file riêng
-4. **Bảo mật**: Không commit các file này lên Git nếu chứa thông tin nhạy cảm (dùng `.gitignore`)
+4. **Bảo mật**: 
+   - Profile `review` sử dụng **biến môi trường** để bảo mật thông tin nhạy cảm
+   - Không commit file `.env` lên Git (đã có trong `.gitignore`)
+   - Xem file `.env.example` để biết các biến môi trường cần thiết
+5. **Cấu hình biến môi trường**: Tạo file `.env` trong thư mục root hoặc set trong IntelliJ Run Configuration
 
 ## 📝 Ví dụ sử dụng
 
