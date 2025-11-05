@@ -36,11 +36,11 @@ public class VNPayConfig {
     /**
      * Tạo Map chứa các tham số cho thanh toán VNPAY
      */
-    public Map<String, String> getVNPayConfig(String transactionId, Double amount, String clientIp) {
+    public Map<String, String> getVNPayConfig(String transactionId, Long amount, String clientIp) {
         Map<String, String> vnpParamsMap = new HashMap<>();
 
         //1. CRITICAL: vnp_Amount phải nhân 100 và là số nguyên
-        long vnpAmount = (long) (amount * 100);
+        long vnpAmount = (amount * 100);
 
         vnpParamsMap.put("vnp_Version", vnp_Version);
         vnpParamsMap.put("vnp_Command", vnp_Command);

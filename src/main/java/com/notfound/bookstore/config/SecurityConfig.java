@@ -36,6 +36,8 @@ public class SecurityConfig {
             "/api/auth/introspect",
             "/api/books/**",
             "/api/payment/vnpay/callback",
+            "/api/payment/zalopay/callback",
+            "/api/payment/zalopay/return",
     };
 
     @Value("${jwt.signerKey}")

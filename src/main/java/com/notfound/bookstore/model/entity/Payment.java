@@ -29,7 +29,7 @@ public class Payment {
     String paymentMethod;
 
     @Column(nullable = false)
-    Double amount;
+    Long amount;
 
     @CreationTimestamp
     @Column(name = "payment_date", nullable = false)
@@ -45,7 +45,7 @@ public class Payment {
     @JoinColumn(name = "order_id", nullable = false)
     Order order;
 
-    public Payment(String paymentMethod, Double amount, Order order) {
+    public Payment(String paymentMethod, Long amount, Order order) {
         this.paymentMethod = paymentMethod;
         this.amount = amount;
         this.order = order;

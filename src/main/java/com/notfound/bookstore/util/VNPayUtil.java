@@ -23,7 +23,7 @@ public class VNPayUtil {
     private final VNPayConfig vnPayConfig;
     private static final String VNP_SECURE_HASH_KEY = "vnp_SecureHash";
 
-    public String generatePaymentUrl(String transactionId, Double amount, HttpServletRequest request) {
+    public String generatePaymentUrl(String transactionId, Long amount, HttpServletRequest request) {
         String clientIp = getClientIpAddress(request);
 
         // 1. Get VNPay params

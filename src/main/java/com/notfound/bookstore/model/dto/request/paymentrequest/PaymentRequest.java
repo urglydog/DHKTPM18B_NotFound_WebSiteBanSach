@@ -12,7 +12,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PaymentRequest {
     UUID orderId;
-    Double amount;
+    Long amount;
     String orderInfo;
     String bankCode;
 }
