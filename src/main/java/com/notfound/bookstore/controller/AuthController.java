@@ -46,7 +46,7 @@ public class AuthController {
         AuthResponse authResponse = authService.login(request);
         return ApiResponse.<AuthResponse>builder()
                 .code(1000)
-                .message("Đăng nhập thành công")
+                .message("Đăng nhập thành công!")
                 .result(authResponse)
                 .build();
     }
