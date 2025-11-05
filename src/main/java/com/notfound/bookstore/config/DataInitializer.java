@@ -23,15 +23,23 @@ public class DataInitializer {
     @Bean
     ApplicationRunner applicationRunner(UserRepository userRepository) {
         return args -> {
-            if (userRepository.findByUsername("admin").isEmpty()) {
-                User user = User.builder()
-                        .email("admin@gmail.com")
-                        .username("admin")
-                        .password(passwordEncoder.encode("admin"))
-                        .role(Role.ADMIN)
-                        .build();
-                userRepository.save(user);
-                log.warn("admin user has been created with default password");
+            try {
+                // Đợi một chút để đảm bảo schema đã được tạo xong
+                Thread.sleep(2000);
+                
+                if (userRepository.findByUsername("admin").isEmpty()) {
+                    User user = User.builder()
+                            .email("admin@gmail.com")
+                            .username("admin")
+                            .password(passwordEncoder.encode("admin"))
+                            .role(Role.ADMIN)
+                            .build();
+                    userRepository.save(user);
+                    log.warn("admin user has been created with default password");
+                }
+            } catch (Exception e) {
+                log.error("Failed to initialize admin user. This might be because tables are not created yet. Error: {}", e.getMessage());
+                log.warn("You can manually create admin user after application starts successfully");
             }
         };
     }

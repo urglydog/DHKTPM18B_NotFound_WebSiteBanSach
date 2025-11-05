@@ -3,6 +3,7 @@ package com.notfound.bookstore.controller;
 import com.notfound.bookstore.exception.ErrorCode;
 import com.notfound.bookstore.model.dto.request.userrequest.EmailRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.LoginRequest;
+import com.notfound.bookstore.model.dto.request.userrequest.RegisterRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.ResetPasswordRequest;
 import com.notfound.bookstore.model.dto.response.ApiResponse;
 import com.notfound.bookstore.model.dto.response.userresponse.AuthResponse;
@@ -30,6 +31,16 @@ public class AuthController {
     UserService userService;
     EmailService emailService;
 
+    @PostMapping("/register")
+    public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        AuthResponse authResponse = authService.register(request);
+        return ApiResponse.<AuthResponse>builder()
+                .code(1000)
+                .message("Đăng ký thành công")
+                .result(authResponse)
+                .build();
+    }
+
     @PostMapping("/login")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse authResponse = authService.login(request);
@@ -44,7 +55,7 @@ public class AuthController {
     public ApiResponse<Void> sendOtp(@RequestBody EmailRequest request) throws MessagingException {
         String email = request.getEmail();
 
-        if(redisService.existsByEmail(email)){
+        if (redisService.existsByEmail(email)) {
             return ApiResponse.<Void>builder()
                     .code(ErrorCode.TOO_MANY_REQUESTS.getCode())
                     .message(ErrorCode.TOO_MANY_REQUESTS.getMessage())
@@ -82,7 +93,7 @@ public class AuthController {
                     .build();
         }
 
-        if (!password_new.equals(confirm_password)){
+        if (!password_new.equals(confirm_password)) {
             return ApiResponse.<Void>builder()
                     .code(4000)
                     .message("Mật khẩu xác nhận không giống nhau")
@@ -115,7 +126,7 @@ public class AuthController {
     }
 
     @PostMapping("/verify-email")
-    public ApiResponse<Void> verifyEmail(@RequestBody EmailRequest request){
+    public ApiResponse<Void> verifyEmail(@RequestBody EmailRequest request) {
         String email = request.getEmail();
 
         if (email == null || !userService.existsByEmail(email)) {
@@ -126,7 +137,7 @@ public class AuthController {
         }
 
         String token = authService.generateEmailVerificationToken(email);
-        emailService.sendHtmlEmail(email,token);
+        emailService.sendHtmlEmail(email, token);
 
         return ApiResponse.<Void>builder()
                 .code(200)
@@ -137,7 +148,7 @@ public class AuthController {
     @GetMapping("/confirm-email")
     public ApiResponse<Void> confirmEmail(@RequestParam("token") String token) {
 
-        if(token == null){
+        if (token == null) {
             return ApiResponse.<Void>builder()
                     .code(4000)
                     .message("Xác thực không thành công")
