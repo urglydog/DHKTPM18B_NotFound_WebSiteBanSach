@@ -1,4 +1,4 @@
-package com.notfound.bookstore.mapper;
+package com.notfound.bookstore.model.mapper;
 
 import com.notfound.bookstore.model.dto.request.reviewrequest.CreateReviewRequest;
 import com.notfound.bookstore.model.dto.response.reviewresponse.ReviewResponse;

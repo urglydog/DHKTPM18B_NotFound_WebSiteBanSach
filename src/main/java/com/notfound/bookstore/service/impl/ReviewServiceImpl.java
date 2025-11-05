@@ -7,9 +7,9 @@ import com.notfound.bookstore.model.dto.response.reviewresponse.ReviewResponse;
 import com.notfound.bookstore.model.entity.Book;
 import com.notfound.bookstore.model.entity.Review;
 import com.notfound.bookstore.model.entity.User;
+import com.notfound.bookstore.model.mapper.ReviewMapper;
 import com.notfound.bookstore.repository.BookRepository;
 import com.notfound.bookstore.repository.ReviewRepository;
-import com.notfound.bookstore.mapper.ReviewMapper;
 
 import com.notfound.bookstore.repository.UserRepository;
 import lombok.AccessLevel;

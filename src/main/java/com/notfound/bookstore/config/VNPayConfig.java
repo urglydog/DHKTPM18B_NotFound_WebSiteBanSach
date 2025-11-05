@@ -7,6 +7,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
+import java.text.Normalizer;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -35,24 +36,67 @@ public class VNPayConfig {
     /**
      * Tạo Map chứa các tham số cho thanh toán VNPAY
      */
-    public Map<String, String> getVNPayConfig(long amount) {
+    public Map<String, String> getVNPayConfig(String transactionId, Long amount, String clientIp) {
         Map<String, String> vnpParamsMap = new HashMap<>();
+
+        //1. CRITICAL: vnp_Amount phải nhân 100 và là số nguyên
+        long vnpAmount = (amount * 100);
+
         vnpParamsMap.put("vnp_Version", vnp_Version);
         vnpParamsMap.put("vnp_Command", vnp_Command);
         vnpParamsMap.put("vnp_TmnCode", vnp_TmnCode);
+        vnpParamsMap.put("vnp_Amount", String.valueOf(vnpAmount));
         vnpParamsMap.put("vnp_CurrCode", "VND");
+        vnpParamsMap.put("vnp_TxnRef", transactionId);
 
-        vnpParamsMap.put("vnp_TxnRef",  VNPayUtil.getRandomNumber(8));
-        vnpParamsMap.put("vnp_OrderInfo", "Thanh toán số tiền: " + amount + " VNĐ");
+        //2. CRITICAL: OrderInfo KHÔNG được có dấu tiếng Việt
+        String orderInfo = removeVietnameseAccentsAndSpaces(
+                "Thanh toan don hang " + transactionId.replace("_", "")
+        );
+        vnpParamsMap.put("vnp_OrderInfo", orderInfo);
+
         vnpParamsMap.put("vnp_OrderType", orderType);
         vnpParamsMap.put("vnp_Locale", "vn");
         vnpParamsMap.put("vnp_ReturnUrl", vnp_ReturnUrl);
+        vnpParamsMap.put("vnp_IpAddr", clientIp);
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+        //3. Timezone GMT+7
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
+                .withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
         Instant now = Instant.now();
-        vnpParamsMap.put("vnp_CreateDate", formatter.format(now));
-        vnpParamsMap.put("vnp_ExpireDate", formatter.format(now.plusSeconds(5 * 60))); // Thêm 5 phút
+
+        String createDate = formatter.format(now);
+        String expireDate = formatter.format(now.plusSeconds(15 * 60));
+
+        vnpParamsMap.put("vnp_CreateDate", createDate);
+        vnpParamsMap.put("vnp_ExpireDate", expireDate);
 
         return vnpParamsMap;
+    }
+
+    /**
+     * Loại bỏ dấu tiếng Việt
+     */
+    private String removeVietnameseAccentsAndSpaces(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+
+        // Normalize Unicode
+        String normalized = Normalizer.normalize(text, Normalizer.Form.NFD);
+
+        // Remove diacritics
+        String result = normalized.replaceAll("\\p{M}", "");
+
+        // Replace đ and Đ
+        result = result.replaceAll("đ", "d").replaceAll("Đ", "D");
+
+        // ✅ CRITICAL: Replace spaces with empty string
+        result = result.replaceAll("\\s+", "");
+
+        // Remove special characters, keep only alphanumeric
+        result = result.replaceAll("[^a-zA-Z0-9]", "");
+
+        return result;
     }
 }

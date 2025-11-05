@@ -1,16 +1,23 @@
 package com.notfound.bookstore.model.dto.response.paymentresponse;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.notfound.bookstore.model.entity.Payment;
+import com.notfound.bookstore.model.enums.PaymentStatus;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class PaymentResponse {
-    private String code;
-    private String message;
-    private String paymentUrl;
+    UUID paymentId;
+    UUID orderId;
+    String paymentMethod;
+    Double amount;
+    LocalDateTime paymentDate;
+    PaymentStatus status;
 }

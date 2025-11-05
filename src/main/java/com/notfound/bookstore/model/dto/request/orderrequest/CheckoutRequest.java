@@ -1,4 +1,4 @@
-package com.notfound.bookstore.model.dto.request.orderRequest;
+package com.notfound.bookstore.model.dto.request.orderrequest;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
