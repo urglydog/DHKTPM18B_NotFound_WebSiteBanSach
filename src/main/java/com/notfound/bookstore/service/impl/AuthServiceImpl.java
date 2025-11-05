@@ -5,11 +5,13 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.notfound.bookstore.exception.AppException;
 import com.notfound.bookstore.exception.ErrorCode;
-import com.notfound.bookstore.mapper.UserMapper;
 import com.notfound.bookstore.model.dto.request.userrequest.LoginRequest;
+import com.notfound.bookstore.model.dto.request.userrequest.RegisterRequest;
 import com.notfound.bookstore.model.dto.response.userresponse.AuthResponse;
 import com.notfound.bookstore.model.dto.response.userresponse.UserResponse;
 import com.notfound.bookstore.model.entity.User;
+import com.notfound.bookstore.model.mapper.UserMapper;
+import com.notfound.bookstore.model.enums.Role;
 import com.notfound.bookstore.repository.UserRepository;
 import com.notfound.bookstore.service.AuthService;
 import lombok.AccessLevel;
@@ -64,6 +66,42 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    @Override
+    public AuthResponse register(RegisterRequest request) {
+        // Kiểm tra username đã tồn tại chưa
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+
+        // Kiểm tra email đã tồn tại chưa
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+
+        // Tạo user mới
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .email(request.getEmail())
+                .fullName(request.getFullName())
+                .phoneNumber(request.getPhoneNumber())
+                .role(Role.CUSTOMER) // Mặc định là CUSTOMER
+                .build();
+
+        user = userRepository.save(user);
+
+        // Tạo token và trả về response
+        String token = generateToken(user);
+        String refreshToken = generateRefreshToken(user);
+        UserResponse userResponse = userMapper.toUserResponse(user);
+
+        return AuthResponse.builder()
+                .token(token)
+                .refreshToken(refreshToken)
+                .user(userResponse)
+                .build();
+    }
+
     private String generateToken(User user) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 
@@ -72,8 +110,7 @@ public class AuthServiceImpl implements AuthService {
                 .issuer("bookstore.com")
                 .issueTime(new Date())
                 .expirationTime(new Date(
-                        Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli()
-                ))
+                        Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli()))
                 .claim("scope", user.getRole())
                 .build();
 
@@ -97,8 +134,7 @@ public class AuthServiceImpl implements AuthService {
                 .issuer("bookstore.com")
                 .issueTime(new Date())
                 .expirationTime(new Date(
-                        Instant.now().plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS).toEpochMilli()
-                ))
+                        Instant.now().plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS).toEpochMilli()))
                 .jwtID(java.util.UUID.randomUUID().toString())
                 .build();
 

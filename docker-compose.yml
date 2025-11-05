@@ -1,17 +1,19 @@
-version: '3.8'
-services:
-  mysql:
-    image: mysql:latest
-    container_name: mysql_db
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: bookstore_db
-      MYSQL_USER: bookstore_user
-      MYSQL_PASSWORD: 123456789
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-volumes:
-  mysql_data:
+#version: '3.8'
+#services:
+#  mysql:
+#    image: mysql:latest
+#    container_name: mysql_db
+#    environment:
+#      MYSQL_ROOT_PASSWORD:
+#      MYSQL_DATABASE:
+#      MYSQL_USER:
+#      MYSQL_PASSWORD:
+#    ports:
+#      - "3306:3306"
+#    volumes:
+#      - mysql_data:/var/lib/mysql
+#  app:
+#    env_file:
+#      - .env
+#volumes:
+#  mysql_data:

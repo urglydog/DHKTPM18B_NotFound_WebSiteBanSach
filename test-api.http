@@ -1,0 +1,165 @@
+### File này dùng để test API trong IntelliJ IDEA
+### Click vào mũi tên bên cạnh mỗi request để chạy
+
+### ============================================
+### PUBLIC ENDPOINTS - Không cần đăng nhập
+### ============================================
+
+### Lấy danh sách sách
+GET http://localhost:8080/api/books
+
+### Lấy danh sách sách với phân trang
+GET http://localhost:8080/api/books?page=0&size=10
+
+### Tìm kiếm sách
+GET http://localhost:8080/api/books/search?keyword=spring
+
+### Lấy chi tiết sách (thay {id} bằng ID thực tế)
+GET http://localhost:8080/api/books/1
+
+### ============================================
+### AUTHENTICATION
+### ============================================
+
+### Đăng ký user mới
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "Test123!",
+  "email": "test@example.com",
+  "fullName": "Test User"
+}
+
+### ============================================
+### BƯỚC 1: ĐĂNG NHẬP ĐỂ LẤY TOKEN
+### ============================================
+
+### Đăng nhập với admin (tự động tạo khi app start)
+### Sau khi chạy request này, token sẽ được tự động lưu vào biến {{token}}
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin"
+}
+
+> {%
+    // IntelliJ HTTP Client tự động lưu token
+    if (response.status === 200) {
+        client.global.set("token", response.body.result.token);
+        client.log("Token đã được lưu: " + response.body.result.token);
+    }
+%}
+
+### Đăng nhập với user khác (nếu đã đăng ký)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "Test123!"
+}
+
+> {%
+    if (response.status === 200) {
+        client.global.set("token", response.body.result.token);
+        client.log("Token đã được lưu: " + response.body.result.token);
+    }
+%}
+
+### LƯU Ý: Sau khi đăng nhập thành công, token sẽ tự động được lưu
+### Các request bên dưới sẽ tự động dùng token này
+
+### ============================================
+### USER ENDPOINTS - Cần đăng nhập
+### ============================================
+
+### Lấy thông tin profile (cần token)
+GET http://localhost:8080/api/user/profile
+Authorization: Bearer {{token}}
+
+### Cập nhật profile
+PUT http://localhost:8080/api/user/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "Updated Name",
+  "email": "updated@example.com"
+}
+
+### ============================================
+### CART ENDPOINTS - Cần đăng nhập
+### ============================================
+
+### Xem giỏ hàng
+GET http://localhost:8080/api/cart
+Authorization: Bearer {{token}}
+
+### Thêm sách vào giỏ hàng
+POST http://localhost:8080/api/cart/add
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "quantity": 2
+}
+
+### Cập nhật số lượng trong giỏ hàng
+PUT http://localhost:8080/api/cart/update
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cartItemId": 1,
+  "quantity": 5
+}
+
+### Xóa item khỏi giỏ hàng
+DELETE http://localhost:8080/api/cart/remove/1
+Authorization: Bearer {{token}}
+
+### ============================================
+### ORDER ENDPOINTS - Cần đăng nhập
+### ============================================
+
+### Thanh toán (checkout)
+POST http://localhost:8080/api/order/checkout
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "addressId": 1,
+  "paymentMethod": "COD"
+}
+
+### Lấy danh sách đơn hàng
+GET http://localhost:8080/api/order
+Authorization: Bearer {{token}}
+
+### Lấy chi tiết đơn hàng
+GET http://localhost:8080/api/order/1
+Authorization: Bearer {{token}}
+
+### ============================================
+### REVIEW ENDPOINTS
+### ============================================
+
+### Lấy đánh giá theo sách (public)
+GET http://localhost:8080/api/review/book/1
+
+### Tạo đánh giá (cần đăng nhập)
+POST http://localhost:8080/api/review
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "rating": 5,
+  "comment": "Sách rất hay!"
+}
+

@@ -24,6 +24,15 @@ public enum ErrorCode {
     INVALID_ARGUMENTS(HttpStatus.BAD_REQUEST, 4200, "Invalid request parameters."),
 
     // ==== 5xx: Lỗi phía server ====
+    //Lỗi
+    ERROR_ENCODE(HttpStatus.INTERNAL_SERVER_ERROR, 3005, "Error encoding URL parameters."),
+    ERROR_CREATE_HMACSHA512(HttpStatus.INTERNAL_SERVER_ERROR, 3000, "Error creating HMAC-SHA512 signature."),
+    INVALID_PAYMENT_SIGNATURE(HttpStatus.BAD_REQUEST, 3001, "Invalid Payment signature."),
+    PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, 3002, "Payment amount mismatch."),
+    PAYMENT_TRANSACTION_FAILED(HttpStatus.BAD_REQUEST, 3003, "Payment transaction failed."),
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, 3004, "Payment not found"),
+    PAYMENT_CONFIG_MISSING(HttpStatus.INTERNAL_SERVER_ERROR, 3004, "Payment configuration is missing."),
+    PAYMENT_ALREADY_PROCESSED(HttpStatus.BAD_REQUEST, 3004, "Payment already processed."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 5000, "Unexpected internal server error."),
     NOT_IMPLEMENTED(HttpStatus.NOT_IMPLEMENTED, 5010, "Feature not implemented."),
     BAD_GATEWAY(HttpStatus.BAD_GATEWAY, 5020, "Invalid response from upstream server."),
@@ -48,9 +57,11 @@ public enum ErrorCode {
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, 2004, "Password must be at least 8 characters."),
     INVALID_KEY(HttpStatus.BAD_REQUEST, 2005, "Invalid API key."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED,1002, "Username or password fail"),
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, 3001, "Order not found."),
 
     // ==== Lỗi hệ thống không phân loại ====
     UNCATEGORIZED_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 9999, "Uncategorized error");
+
 
     private final HttpStatus httpStatus;
     private final int code;
