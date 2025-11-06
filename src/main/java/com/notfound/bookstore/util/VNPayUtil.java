@@ -1,128 +1,237 @@
 package com.notfound.bookstore.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.notfound.bookstore.config.VNPayConfig;
 import com.notfound.bookstore.exception.AppException;
 import com.notfound.bookstore.exception.ErrorCode;
+import com.notfound.bookstore.model.dto.request.paymentrequest.VNPayCallbackRequest;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.stream.Collectors;
 
+@Slf4j
+@Component
+@RequiredArgsConstructor
 public class VNPayUtil {
-    /**
-     * Tạo chữ ký bảo mật HmacSHA512
-     */
-    public static String hmacSHA512(final String key, final String data) {
-        if (key == null || data == null) {
-            throw new IllegalArgumentException("Key và Data không được null");
-        }
-        try {
-            Mac hmac512 = Mac.getInstance("HmacSHA512");
-            SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
-            hmac512.init(secretKey);
-            byte[] result = hmac512.doFinal(data.getBytes(StandardCharsets.UTF_8));
 
-            StringBuilder sb = new StringBuilder(2 * result.length);
-            for (byte b : result) {
-                sb.append(String.format("%02x", b & 0xff));
+    private final VNPayConfig vnPayConfig;
+    private static final String VNP_SECURE_HASH_KEY = "vnp_SecureHash";
+
+    public String generatePaymentUrl(String transactionId, Long amount, HttpServletRequest request) {
+        String clientIp = getClientIpAddress(request);
+
+        // 1. Get VNPay params
+        Map<String, String> vnpParams = vnPayConfig.getVNPayConfig(transactionId, amount, clientIp);
+
+        // 2. Sort keys
+        List<String> fieldNames = new ArrayList<>(vnpParams.keySet());
+        Collections.sort(fieldNames);
+
+        // 3. Build HASH DATA (WITH URL ENCODING - theo code mẫu VNPay)
+        StringBuilder hashData = new StringBuilder();
+
+        // 4. Build QUERY STRING (WITH URL ENCODING)
+        StringBuilder query = new StringBuilder();
+
+        Iterator<String> itr = fieldNames.iterator();
+
+        while (itr.hasNext()) {
+            String fieldName = itr.next();
+            String fieldValue = vnpParams.get(fieldName);
+
+            if (fieldValue != null && !fieldValue.isEmpty()) {
+                try {
+                    // Build hash data WITH URL ENCODING (theo code mẫu VNPay)
+                    hashData.append(fieldName);
+                    hashData.append('=');
+                    hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
+
+                    // Build query WITH URL ENCODING
+                    query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII));
+                    query.append('=');
+                    query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
+
+                    if (itr.hasNext()) {
+                        query.append('&');
+                        hashData.append('&');
+                    }
+                } catch (Exception e) {
+                    log.error("Error encoding:",  e);
+                }
             }
-            return sb.toString();
+        }
+
+        // 5. Generate hash
+        String hashDataStr = hashData.toString();
+
+
+        String secureHash = hmacSHA512(vnPayConfig.getSecretKey(), hashDataStr);
+
+        // 6. Build final URL
+        String queryUrl = query.toString();
+        queryUrl += "&" + VNP_SECURE_HASH_KEY + "=" + secureHash;
+
+        return vnPayConfig.getVnp_PayUrl() + "?" + queryUrl;
+    }
+
+    /**
+     * Get client IP address
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String ip = request.getHeader("X-FORWARDED-FOR");
+        if (ip == null || ip.isBlank()) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isBlank()) {
+            ip = request.getRemoteAddr();
+        }
+
+        // Handle IPv6 localhost
+        if ("0:0:0:0:0:0:0:1".equals(ip)) {
+            ip = "127.0.0.1";
+        }
+
+        return ip;
+    }
+
+    /**
+     * Generate HMAC SHA512
+     */
+    private String hmacSHA512(String key, String data) {
+        try {
+            if (key == null || data == null) {
+                throw new IllegalArgumentException("Key and data must not be null");
+            }
+
+            Mac hmac512 = Mac.getInstance("HmacSHA512");
+            SecretKeySpec secretKey = new SecretKeySpec(
+                    key.getBytes(StandardCharsets.UTF_8),
+                    "HmacSHA512"
+            );
+            hmac512.init(secretKey);
+            byte[] hashBytes = hmac512.doFinal(data.getBytes(StandardCharsets.UTF_8));
+
+            // Convert to hex
+            StringBuilder result = new StringBuilder();
+            for (byte b : hashBytes) {
+                result.append(String.format("%02x", b));
+            }
+
+            return result.toString();
+
         } catch (Exception ex) {
             throw new AppException(ErrorCode.ERROR_CREATE_HMACSHA512);
         }
     }
 
     /**
-     * Lấy địa chỉ IP thực từ request
+     * Verify VNPay response signature
      */
-    public static String getIpAddress(HttpServletRequest request) {
-        String[] headers = {
-                "X-Forwarded-For",
-                "Proxy-Client-IP",
-                "WL-Proxy-Client-IP",
-                "HTTP_CLIENT_IP",
-                "HTTP_X_FORWARDED_FOR"
-        };
+    public boolean verifyPaymentResponse(Map<String, String> params) {
+        String vnpSecureHash = params.get(VNP_SECURE_HASH_KEY);
 
-        for (String header : headers) {
-            String ip = request.getHeader(header);
-            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-                return ip.split(",")[0].trim(); // Lấy IP đầu tiên nếu có nhiều giá trị
+        if (vnpSecureHash == null) {
+            return false;
+        }
+
+        // Remove hash fields
+        Map<String, String> paramsToHash = new HashMap<>(params);
+        paramsToHash.remove(VNP_SECURE_HASH_KEY);
+        paramsToHash.remove("vnp_SecureHashType");
+
+        // Build hash data
+        List<String> fieldNames = new ArrayList<>(paramsToHash.keySet());
+        Collections.sort(fieldNames);
+
+        StringBuilder hashData = new StringBuilder();
+        Iterator<String> itr = fieldNames.iterator();
+
+        while (itr.hasNext()) {
+            String fieldName = itr.next();
+            String fieldValue = paramsToHash.get(fieldName);
+
+            if (fieldValue != null && !fieldValue.isEmpty()) {
+                try {
+                    hashData.append(fieldName);
+                    hashData.append('=');
+                    hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
+
+                    if (itr.hasNext()) {
+                        hashData.append('&');
+                    }
+                } catch (Exception e) {
+                }
             }
         }
-        return request.getRemoteAddr();
+        String calculatedHash = hmacSHA512(vnPayConfig.getSecretKey(), hashData.toString());
+        return vnpSecureHash.equals(calculatedHash);
     }
 
     /**
-     * Tạo số ngẫu nhiên có độ dài len
+     * Verify VNPay callback signature
+     * @param vnpParams VNPay callback request
+     * @return true if signature is valid, false otherwise
      */
-    public static String getRandomNumber(int len) {
-        Random rnd = new Random();
-        String chars = "0123456789";
-        StringBuilder sb = new StringBuilder(len);
-        for (int i = 0; i < len; i++) {
-            sb.append(chars.charAt(rnd.nextInt(chars.length())));
-        }
-        return sb.toString();
-    }
-
-    /**
-     * Tạo URL thanh toán từ Map các tham số
-     */
-    public static String getPaymentURL(Map<String, String> paramsMap, boolean encodeKey) {
-        return paramsMap.entrySet().stream()
-                .filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
-                .sorted(Map.Entry.comparingByKey())
-                .map(entry ->
-                        (encodeKey ? encode(entry.getKey()) : entry.getKey()) + "=" + encode(entry.getValue()))
-                .collect(Collectors.joining("&"));
-    }
-
-    /**
-     * Encode URL sử dụng UTF-8
-     */
-    private static String encode(String value) {
+    public boolean verifyReturnDataSignature(VNPayCallbackRequest vnpParams) {
         try {
-            return URLEncoder.encode(value, StandardCharsets.UTF_8);
+            String vnpSecureHash = vnpParams.getVnp_SecureHash();
+
+            if (vnpSecureHash == null || vnpSecureHash.isEmpty()) {
+                return false;
+            }
+
+            List<String> hashDataParts = new ArrayList<>();
+
+            if (vnpParams.getVnp_Amount() != null)
+                hashDataParts.add("vnp_Amount=" + URLEncoder.encode(vnpParams.getVnp_Amount(), StandardCharsets.US_ASCII));
+
+            if (vnpParams.getVnp_BankCode() != null)
+                hashDataParts.add("vnp_BankCode=" + URLEncoder.encode(vnpParams.getVnp_BankCode(), StandardCharsets.US_ASCII));
+
+            if (vnpParams.getVnp_BankTranNo() != null)
+                hashDataParts.add("vnp_BankTranNo=" + URLEncoder.encode(vnpParams.getVnp_BankTranNo(), StandardCharsets.US_ASCII));
+
+            if (vnpParams.getVnp_CardType() != null)
+                hashDataParts.add("vnp_CardType=" + URLEncoder.encode(vnpParams.getVnp_CardType(), StandardCharsets.US_ASCII));
+
+            if (vnpParams.getVnp_OrderInfo() != null)
+                hashDataParts.add("vnp_OrderInfo=" + URLEncoder.encode(vnpParams.getVnp_OrderInfo(), StandardCharsets.US_ASCII));
+
+            if (vnpParams.getVnp_PayDate() != null)
+                hashDataParts.add("vnp_PayDate=" + URLEncoder.encode(vnpParams.getVnp_PayDate(), StandardCharsets.US_ASCII));
+
+            if (vnpParams.getVnp_ResponseCode() != null)
+                hashDataParts.add("vnp_ResponseCode=" + URLEncoder.encode(vnpParams.getVnp_ResponseCode(), StandardCharsets.US_ASCII));
+
+            if (vnpParams.getVnp_TmnCode() != null)
+                hashDataParts.add("vnp_TmnCode=" + URLEncoder.encode(vnpParams.getVnp_TmnCode(), StandardCharsets.US_ASCII));
+
+            if (vnpParams.getVnp_TransactionNo() != null)
+                hashDataParts.add("vnp_TransactionNo=" + URLEncoder.encode(vnpParams.getVnp_TransactionNo(), StandardCharsets.US_ASCII));
+
+            if (vnpParams.getVnp_TransactionStatus() != null)
+                hashDataParts.add("vnp_TransactionStatus=" + URLEncoder.encode(vnpParams.getVnp_TransactionStatus(), StandardCharsets.US_ASCII));
+
+            if (vnpParams.getVnp_TxnRef() != null)
+                hashDataParts.add("vnp_TxnRef=" + URLEncoder.encode(vnpParams.getVnp_TxnRef(), StandardCharsets.US_ASCII));
+
+            Collections.sort(hashDataParts);
+
+            String hashData = String.join("&", hashDataParts);
+
+            String calculatedHash = hmacSHA512(vnPayConfig.getSecretKey(), hashData);
+
+            return calculatedHash.equalsIgnoreCase(vnpSecureHash);
+
         } catch (Exception e) {
-            throw new AppException(ErrorCode.ERROR_ENCODE);
-        }
-    }
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
-    public static String sendPostRequest(String url, Map<String, String> params) throws Exception {
-        URL obj = new URL(url);
-        HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-        con.setRequestMethod("POST");
-        con.setRequestProperty("Content-Type", "application/json");
-        con.setDoOutput(true);
-
-        // Chuyển tham số thành JSON
-        String jsonInputString = objectMapper.writeValueAsString(params);
-
-        try (OutputStream os = con.getOutputStream()) {
-            os.write(jsonInputString.getBytes("utf-8"));
-        }
-
-        int responseCode = con.getResponseCode();
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            throw new RuntimeException("VNPay API error: " + responseCode);
-        }
-
-        // Đọc phản hồi từ VNPay
-        try (InputStream is = con.getInputStream();
-             BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-            return br.lines().collect(Collectors.joining("\n"));
+            log.error("Error verifying signature: {}", e.getMessage(), e);
+            return false;
         }
     }
 }
