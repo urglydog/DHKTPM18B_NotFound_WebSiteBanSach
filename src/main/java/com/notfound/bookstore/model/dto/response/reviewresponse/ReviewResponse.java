@@ -12,8 +12,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ReviewResponse {
-    UUID id;
-    String username;
+    UUID reviewID;
+    String userName;
+    String userAvatar;
     Integer rating;
     String comment;
     LocalDateTime createdAt;

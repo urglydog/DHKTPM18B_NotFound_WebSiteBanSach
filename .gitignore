@@ -18,6 +18,8 @@ target/
 *.iws
 *.iml
 *.ipr
+*.yml
+*.properties
 
 ### NetBeans ###
 /nbproject/private/
@@ -28,6 +30,7 @@ target/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+!deploy.yml
 
 ### VS Code ###
 .vscode/

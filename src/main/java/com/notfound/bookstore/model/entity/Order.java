@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.entity;
 
+import com.notfound.bookstore.model.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -51,8 +52,5 @@ public class Order {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     Payment payment;
 
-    public enum OrderStatus {
-        PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED, COMPLETED
-    }
 
 }

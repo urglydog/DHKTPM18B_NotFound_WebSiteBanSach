@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.notfound.bookstore.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
@@ -43,6 +44,9 @@ public class User {
     @Column
     String gender;
 
+    @Column
+    String avatar_url;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     Role role;
@@ -51,6 +55,7 @@ public class User {
     List<Address> addresses;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
     List<Review> reviews;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -65,10 +70,11 @@ public class User {
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<News> newsArticles;
 
-    public User(String username, String password, String email, Role role) {
+    public User(String username, String password, String email, Role role, String avatar_url) {
         this.username = username;
         this.password = password;
         this.email = email;
         this.role = role;
+        this.avatar_url = avatar_url;
     }
 }

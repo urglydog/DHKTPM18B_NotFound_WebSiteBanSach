@@ -24,6 +24,7 @@ public class RegisterRequest {
 
     String fullName;
 
+    // Phone number is optional, only validate format if provided
     @Pattern(regexp = "^(\\+84|0)[0-9]{9}$", message = "Invalid phone number")
     String phoneNumber;
 }
