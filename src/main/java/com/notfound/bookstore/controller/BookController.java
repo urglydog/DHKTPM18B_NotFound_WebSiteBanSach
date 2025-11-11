@@ -30,25 +30,19 @@ public class BookController {
 
     // Tìm kiếm sách theo từ khóa (tên sách, tác giả, hoặc thể loại)
     @GetMapping("/search")
-    public ApiResponse<PageResponse<BookSummaryResponse>> searchBooks(@RequestParam(required = false) String keyword,
-                                                                      @RequestParam(defaultValue = "0") int page,
-                                                                      @RequestParam(defaultValue = "10") int size) {
-        PageResponse<BookSummaryResponse> books = bookService.searchBooks(BookSearchRequest.builder()
-                .keyword(keyword)
-                .page(page)
-                .size(size)
-                .build()
-        );
+    public ApiResponse<PageResponse<BookSummaryResponse>> searchBooks(@ModelAttribute BookSearchRequest request)
+    {
         return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
                 .code(1000)
                 .message("Tìm kiếm sách thành công")
-                .result(books)
+                .result(bookService.searchBooks(request))
                 .build();
     }
 
     // Lọc sách theo các tiêu chí: giá, đánh giá trung bình và ngày phát hành
     @GetMapping("/filter")
     public ResponseEntity<PageResponse<BookSummaryResponse>> filterBooks(
+
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(required = false) Double minRating,
