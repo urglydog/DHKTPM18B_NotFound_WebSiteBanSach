@@ -47,7 +47,7 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
             "OR LOWER(a.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<Book> searchBooks(@Param("keyword") String keyword, Pageable pageable);
-
+    
     // Lọc theo giá
     Page<Book> findByPriceBetween(Double minPrice, Double maxPrice, Pageable pageable);
 
