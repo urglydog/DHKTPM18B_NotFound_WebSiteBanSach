@@ -3,6 +3,7 @@ package com.notfound.bookstore.service.impl;
 import com.notfound.bookstore.model.dto.request.bookrequest.BookFilterRequest;
 import com.notfound.bookstore.model.dto.request.bookrequest.BookSearchRequest;
 import com.notfound.bookstore.model.dto.request.bookrequest.BookSortRequest;
+import com.notfound.bookstore.model.dto.request.bookrequest.BookWithRating;
 import com.notfound.bookstore.model.dto.response.bookresponse.BookResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.BookSummaryResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.PageResponse;
@@ -51,12 +52,13 @@ public class BookServiceImpl implements BookService {
         return bookMapper.toPageResponse(responsePage);
     }
 
-    // Lọc sách theo các tiêu chí: giá, đánh giá trung bình và ngày phát hành
+    // Lọc sách theo các tiêu chí: giá, đánh giá trung bình, ngày phát hành và từ khóa
     @Override
     public PageResponse<BookSummaryResponse> findByFilters(BookFilterRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
 
-        Page<Book> bookPage = bookRepository.findByFilters(
+        Page<BookWithRating> resultPage = bookRepository.findByFiltersWithRating(
+                request.getKeyword(),
                 request.getMinPrice(),
                 request.getMaxPrice(),
                 request.getMinRating(),
@@ -64,7 +66,13 @@ public class BookServiceImpl implements BookService {
                 pageable
         );
 
-        Page<BookSummaryResponse> responsePage = bookPage.map(bookMapper::toBookSummaryResponse);
+        Page<BookSummaryResponse> responsePage = resultPage.map(result -> {
+            BookSummaryResponse response = bookMapper.toBookSummaryResponse(result.getBook());
+            response.setAverageRating(result.getAverageRating());
+            response.setReviewCount(result.getReviewCount().intValue());
+            return response;
+        });
+
         return bookMapper.toPageResponse(responsePage);
     }
 

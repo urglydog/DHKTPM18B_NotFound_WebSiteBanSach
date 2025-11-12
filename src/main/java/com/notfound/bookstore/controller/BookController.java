@@ -10,6 +10,7 @@ import com.notfound.bookstore.model.dto.response.bookresponse.PageResponse;
 import com.notfound.bookstore.model.entity.Book;
 import com.notfound.bookstore.service.BookService;
 import com.notfound.bookstore.service.impl.BookServiceImpl;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -41,64 +42,42 @@ public class BookController {
 
     // Lọc sách theo các tiêu chí: giá, đánh giá trung bình và ngày phát hành
     @GetMapping("/filter")
-    public ResponseEntity<PageResponse<BookSummaryResponse>> filterBooks(
-
-            @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice,
-            @RequestParam(required = false) Double minRating,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate publishedAfter,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        BookFilterRequest request = BookFilterRequest.builder()
-                .minPrice(minPrice)
-                .maxPrice(maxPrice)
-                .minRating(minRating)
-                .publishedAfter(publishedAfter)
-                .page(page)
-                .size(size)
+    public ApiResponse<PageResponse<BookSummaryResponse>> filterBooks(
+            @Valid @ModelAttribute BookFilterRequest request) {
+        return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
+                .code(1000)
+                .message("Lọc sách thành công")
+                .result(bookService.findByFilters(request))
                 .build();
-
-        PageResponse<BookSummaryResponse> books = bookService.findByFilters(request);
-        return ResponseEntity.ok(books);
     }
 
     // Lấy danh sách sách được sắp xếp theo loại sắp xếp được chỉ định
     @GetMapping("/sorted")
-    public ResponseEntity<PageResponse<BookSummaryResponse>> getSortedBooks(
-            @RequestParam(defaultValue = "date_desc") String sortType,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        BookSortRequest request = BookSortRequest.builder()
-                .sortType(sortType)
-                .page(page)
-                .size(size)
+    public ApiResponse<PageResponse<BookSummaryResponse>> getSortedBooks(@ModelAttribute BookSortRequest request) {
+        return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
+                .code(1000)
+                .message("Sắp xếp sách thành công")
+                .result(bookService.getSortedBooks(request))
                 .build();
-
-        PageResponse<BookSummaryResponse> books = bookService.getSortedBooks(request);
-        return ResponseEntity.ok(books);
     }
 
     // Lấy tất cả sách với phân trang
     @GetMapping
-    public ResponseEntity<PageResponse<BookSummaryResponse>> getAllBooks(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        BookSearchRequest request = BookSearchRequest.builder()
-                .page(page)
-                .size(size)
+    public ApiResponse<PageResponse<BookSummaryResponse>> getAllBooks(@ModelAttribute BookSearchRequest request) {
+        return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
+                .code(1000)
+                .message("Lấy danh sách sách thành công")
+                .result(bookService.searchBooks(request))
                 .build();
-
-        PageResponse<BookSummaryResponse> books = bookService.searchBooks(request);
-        return ResponseEntity.ok(books);
     }
 
     // Lấy thông tin chi tiết của một cuốn sách dựa trên ID
     @GetMapping("/{id}")
-    public ResponseEntity<BookResponse> getBookById(@PathVariable String id) {
-        BookResponse book = bookService.getBookById(id);
-        return ResponseEntity.ok(book);
+    public ApiResponse<BookResponse> getBookById(@PathVariable String id) {
+        return ApiResponse.<BookResponse>builder()
+                .code(1000)
+                .message("Lấy thông tin sách thành công")
+                .result(bookService.getBookById(id))
+                .build();
     }
 }

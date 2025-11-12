@@ -1,5 +1,6 @@
 package com.notfound.bookstore.repository;
 
+import com.notfound.bookstore.model.dto.request.bookrequest.BookWithRating;
 import com.notfound.bookstore.model.entity.Book;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -59,14 +60,23 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     //Lọc sách có ngày phát hành trong khoảng từ ngày A đến ngày B
     Page<Book> findByPublishDateBetween(LocalDate startDate, LocalDate endDate, Pageable pageable);
 
-    // Lọc cả 3 yếu tố: giá, đánh giá trung bình, ngày phát hành
-    @Query("SELECT DISTINCT b FROM Book b LEFT JOIN b.reviews r " +
-            "WHERE (:minPrice IS NULL OR b.price >= :minPrice) " +
+    // Lọc sách theo keyword, giá, đánh giá trung bình và ngày phát hành
+    @Query("SELECT b as book, COALESCE(AVG(r.rating), 0) as averageRating, COUNT(r) as reviewCount " +
+            "FROM Book b " +
+            "LEFT JOIN b.reviews r " +
+            "LEFT JOIN b.authors a " +
+            "LEFT JOIN b.categories c " +
+            "WHERE (:keyword IS NULL OR " +
+            "LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:minPrice IS NULL OR b.price >= :minPrice) " +
             "AND (:maxPrice IS NULL OR b.price <= :maxPrice) " +
             "AND (:publishedAfter IS NULL OR b.publishDate >= :publishedAfter) " +
             "GROUP BY b.id " +
-            "HAVING (:minRating IS NULL OR AVG(r.rating) >= :minRating)")
-    Page<Book> findByFilters(
+            "HAVING (:minRating IS NULL OR COALESCE(AVG(r.rating), 0) >= :minRating)")
+    Page<BookWithRating> findByFiltersWithRating(
+            @Param("keyword") String keyword,
             @Param("minPrice") Double minPrice,
             @Param("maxPrice") Double maxPrice,
             @Param("minRating") Double minRating,
