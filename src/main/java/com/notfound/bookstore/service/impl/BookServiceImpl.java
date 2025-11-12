@@ -20,12 +20,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookServiceImpl implements BookService {
 
-    @Autowired
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
 
@@ -42,9 +42,9 @@ public class BookServiceImpl implements BookService {
             bookPage = bookRepository.findAll(pageable);
         } else {
             String keyword = request.getKeyword().trim();
-            log.info("Searching with keyword: " , keyword);
+            log.info("Searching with keyword: {}", keyword);
             bookPage = bookRepository.searchBooks(keyword, pageable);
-            log.info("Found books: " , bookPage.getTotalElements()); // ← Thêm log
+            log.info("Found {} books", bookPage.getTotalElements());
         }
 
         Page<BookSummaryResponse> responsePage = bookPage.map(bookMapper::toBookSummaryResponse);
