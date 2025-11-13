@@ -161,4 +161,28 @@ public class AuthController {
                 .message("Xác thực email thành công " + email)
                 .build();
     }
+
+    @GetMapping("/google/callback")
+    public ApiResponse<AuthResponse> googleCallback(@RequestParam("code") String code) {
+        if (code == null || code.isEmpty()) {
+            return ApiResponse.<AuthResponse>builder()
+                    .code(4000)
+                    .message("Authorization code không hợp lệ")
+                    .build();
+        }
+
+        try {
+            AuthResponse authResponse = authService.handleGoogleOAuthCallback(code);
+            return ApiResponse.<AuthResponse>builder()
+                    .code(1000)
+                    .message("Đăng nhập Google thành công!")
+                    .result(authResponse)
+                    .build();
+        } catch (Exception e) {
+            return ApiResponse.<AuthResponse>builder()
+                    .code(4000)
+                    .message("Đăng nhập Google thất bại: " + e.getMessage())
+                    .build();
+        }
+    }
 }
