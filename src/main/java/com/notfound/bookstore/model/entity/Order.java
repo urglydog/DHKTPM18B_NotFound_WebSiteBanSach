@@ -17,7 +17,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"customer", "orderItems", "payment"})
+@ToString(exclude = { "customer", "orderItems", "payment" })
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Order {
 
@@ -52,5 +52,11 @@ public class Order {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     Payment payment;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "promotion_id")
+    Promotion promotion;
+
+    @Column(name = "discount_amount")
+    Double discountAmount; // Số tiền được giảm từ promotion
 
 }
