@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controller xử lý các chức năng liên quan đến thể loại sách
+ * Cung cấp API để xem thông tin và danh sách thể loại cho người dùng
+ */
 @RestController
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
@@ -23,6 +27,12 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
+    /**
+     * Lấy thông tin chi tiết của một thể loại
+     *
+     * @param categoryId ID của thể loại cần lấy thông tin
+     * @return Thông tin chi tiết của thể loại
+     */
     @GetMapping("/{categoryId}")
     public ApiResponse<CategoryResponse> getCategory(@PathVariable UUID categoryId) {
         CategoryResponse response = categoryService.getCategory(categoryId);
@@ -33,6 +43,12 @@ public class CategoryController {
                 .build();
     }
 
+    /**
+     * Lấy danh sách tất cả thể loại
+     * Trả về danh sách đầy đủ không phân trang
+     *
+     * @return Danh sách tất cả thể loại
+     */
     @GetMapping
     public ApiResponse<List<CategoryResponse>> getAllCategories() {
         List<CategoryResponse> response = categoryService.getAllCategories();
@@ -43,6 +59,14 @@ public class CategoryController {
                 .build();
     }
 
+    /**
+     * Lấy danh sách thể loại có phân trang
+     * Hỗ trợ phân trang để hiển thị danh sách thể loại
+     *
+     * @param page Số trang (mặc định: 0)
+     * @param size Kích thước trang (mặc định: 10)
+     * @return Danh sách thể loại được phân trang
+     */
     @GetMapping("/paged")
     public ApiResponse<Page<CategoryResponse>> getAllCategoriesPaged(
             @RequestParam(defaultValue = "0") int page,
@@ -55,5 +79,6 @@ public class CategoryController {
                 .result(response)
                 .build();
     }
+
 }
 
