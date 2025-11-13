@@ -3,6 +3,7 @@ package com.notfound.bookstore.model.dto.response.categoryresponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -16,5 +17,6 @@ public class CategoryResponse {
     String description;
     UUID parentCategoryId;
     String parentCategoryName;
+    List<CategoryResponse> subCategories;
+    Integer totalBooks;
 }
-

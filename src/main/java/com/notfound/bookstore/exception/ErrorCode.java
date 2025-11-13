@@ -24,7 +24,7 @@ public enum ErrorCode {
     INVALID_ARGUMENTS(HttpStatus.BAD_REQUEST, 4200, "Invalid request parameters."),
 
     // ==== 5xx: Lỗi phía server ====
-    //Lỗi
+    // Lỗi
     ERROR_ENCODE(HttpStatus.INTERNAL_SERVER_ERROR, 3005, "Error encoding URL parameters."),
     ERROR_CREATE_HMACSHA512(HttpStatus.INTERNAL_SERVER_ERROR, 3000, "Error creating HMAC-SHA512 signature."),
     INVALID_PAYMENT_SIGNATURE(HttpStatus.BAD_REQUEST, 3001, "Invalid Payment signature."),
@@ -56,12 +56,20 @@ public enum ErrorCode {
     USERNAME_INVALID(HttpStatus.BAD_REQUEST, 2003, "Username must be at least 3 characters."),
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, 2004, "Password must be at least 8 characters."),
     INVALID_KEY(HttpStatus.BAD_REQUEST, 2005, "Invalid API key."),
-    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED,1002, "Username or password fail"),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, 1002, "Username or password fail"),
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, 3001, "Order not found."),
+
+    // ==== Lỗi khuyến mãi ====
+    PROMOTION_NOT_FOUND(HttpStatus.NOT_FOUND, 4001, "Khuyến mãi không tồn tại."),
+    PROMOTION_CODE_INVALID(HttpStatus.BAD_REQUEST, 4002, "Mã khuyến mãi không hợp lệ."),
+    PROMOTION_CODE_EXPIRED(HttpStatus.BAD_REQUEST, 4003, "Mã khuyến mãi đã hết hạn."),
+    PROMOTION_CODE_USED_UP(HttpStatus.BAD_REQUEST, 4004, "Mã khuyến mãi đã hết lượt sử dụng."),
+    PROMOTION_CODE_NOT_APPLICABLE(HttpStatus.BAD_REQUEST, 4005, "Mã khuyến mãi không áp dụng cho sản phẩm này."),
+    PROMOTION_CODE_ALREADY_EXISTS(HttpStatus.CONFLICT, 4006, "Mã khuyến mãi đã tồn tại."),
+    PROMOTION_INACTIVE(HttpStatus.BAD_REQUEST, 4007, "Khuyến mãi đang không hoạt động."),
 
     // ==== Lỗi hệ thống không phân loại ====
     UNCATEGORIZED_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 9999, "Uncategorized error");
-
 
     private final HttpStatus httpStatus;
     private final int code;

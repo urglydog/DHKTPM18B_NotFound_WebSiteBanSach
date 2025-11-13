@@ -14,6 +14,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @ToString(exclude = {"books", "parentCategory", "subCategories"})
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Category {
