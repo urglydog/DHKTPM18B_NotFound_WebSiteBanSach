@@ -22,6 +22,7 @@ public class Review {
 
     @Id
     @UuidGenerator
+    @Column(name = "review_id")
     UUID reviewID;
 
     @Column(columnDefinition = "TEXT")
