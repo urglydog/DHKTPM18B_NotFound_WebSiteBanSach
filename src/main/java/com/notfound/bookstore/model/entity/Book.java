@@ -19,6 +19,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @ToString(exclude = {"authors", "categories", "reviews", "orderItems", "cartItems", "wishlists"})
 public class Book {
