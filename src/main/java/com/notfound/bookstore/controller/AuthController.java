@@ -1,10 +1,12 @@
 package com.notfound.bookstore.controller;
 
 import com.notfound.bookstore.exception.ErrorCode;
+import com.notfound.bookstore.exception.AppException;
 import com.notfound.bookstore.model.dto.request.userrequest.EmailRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.LoginRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.RegisterRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.ResetPasswordRequest;
+import com.notfound.bookstore.model.dto.request.userrequest.ChangePasswordRequest;
 import com.notfound.bookstore.model.dto.response.ApiResponse;
 import com.notfound.bookstore.model.dto.response.userresponse.AuthResponse;
 import com.notfound.bookstore.service.AuthService;
@@ -16,6 +18,7 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Random;
@@ -48,6 +51,18 @@ public class AuthController {
                 .code(1000)
                 .message("Đăng nhập thành công!")
                 .result(authResponse)
+                .build();
+    }
+
+    @PutMapping("/change-password")
+    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        authService.changePassword(authentication.getName(), request);
+        return ApiResponse.<Void>builder()
+                .code(1000)
+                .message("Đổi mật khẩu thành công")
                 .build();
     }
 
