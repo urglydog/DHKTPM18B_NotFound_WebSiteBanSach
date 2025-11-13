@@ -1,12 +1,21 @@
 package com.notfound.bookstore.controller;
 
+import com.notfound.bookstore.model.dto.request.orderrequest.CheckoutRequest;
+import com.notfound.bookstore.model.dto.request.paymentrequest.PaymentRequest;
 import com.notfound.bookstore.model.dto.response.ApiResponse;
 import com.notfound.bookstore.model.dto.response.orderresponse.OrderResponse;
+import com.notfound.bookstore.model.dto.response.paymentresponse.CreatePaymentResponse;
 import com.notfound.bookstore.model.entity.User;
 import com.notfound.bookstore.model.enums.OrderStatus;
 import com.notfound.bookstore.repository.UserRepository;
 import com.notfound.bookstore.service.OrderService;
+import com.notfound.bookstore.service.impl.VNPayServiceImpl;
+import com.notfound.bookstore.service.impl.ZaloPayServiceImpl;
+import com.notfound.bookstore.service.impl.MoMoServiceImpl;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,11 +23,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
@@ -26,6 +37,9 @@ public class OrderController {
 
     private final OrderService orderService;
     private final UserRepository userRepository;
+    private final VNPayServiceImpl vnPayService;
+    private final ZaloPayServiceImpl zaloPayService;
+    private final MoMoServiceImpl moMoService;
 
     /**
      * Lấy danh sách đơn hàng của user đang đăng nhập
@@ -241,5 +255,224 @@ public class OrderController {
                 .message("Đếm số đơn hàng thành công")
                 .result(count)
                 .build());
+    }
+
+    /**
+     * Checkout và tạo đơn hàng từ giỏ hàng (COD)
+     * POST /api/orders/checkout
+     */
+    @PostMapping("/checkout")
+    public ResponseEntity<?> checkout(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody(required = false) CheckoutRequest request) {
+
+        if (jwt == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.builder()
+                            .code(4001)
+                            .message("Vui lòng đăng nhập")
+                            .build());
+        }
+
+        try {
+            String username = jwt.getSubject();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+            // Nếu không có request body, tạo mặc định COD
+            if (request == null) {
+                request = CheckoutRequest.builder()
+                        .paymentMethod("COD")
+                        .build();
+            }
+
+            // Validate paymentMethod
+            if (request.getPaymentMethod() == null || request.getPaymentMethod().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.builder()
+                                .code(4003)
+                                .message("Vui lòng chọn phương thức thanh toán")
+                                .build());
+            }
+
+            OrderResponse orderResponse = orderService.checkout(user.getId(), request);
+
+            return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
+                    .code(1000)
+                    .message("Đặt hàng thành công")
+                    .result(orderResponse)
+                    .build());
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.builder()
+                            .code(4005)
+                            .message(e.getMessage())
+                            .build());
+        }
+    }
+
+    /**
+     * Checkout và thanh toán online qua VNPay
+     * POST /api/orders/checkout/vnpay
+     */
+    @PostMapping("/checkout/vnpay")
+    public ResponseEntity<?> checkoutWithVNPay(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CheckoutRequest request,
+            HttpServletRequest httpServletRequest) {
+
+        if (jwt == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.builder()
+                            .code(4001)
+                            .message("Vui lòng đăng nhập")
+                            .build());
+        }
+
+        try {
+            String username = jwt.getSubject();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+            // Set payment method to VNPay
+            request.setPaymentMethod("VNPay");
+
+            // 1. Tạo đơn hàng trước
+            OrderResponse orderResponse = orderService.checkout(user.getId(), request);
+
+            // 2. Tạo payment request
+            PaymentRequest paymentRequest = PaymentRequest.builder()
+                    .orderId(orderResponse.getId())
+                    .amount(orderResponse.getTotal().longValue())
+                    .build();
+
+            // 3. Tạo VNPay payment URL
+            CreatePaymentResponse paymentResponse = vnPayService.createVNPayPaymentUrl(
+                    paymentRequest,
+                    httpServletRequest
+            );
+
+            return ResponseEntity.ok(ApiResponse.<CreatePaymentResponse>builder()
+                    .code(1000)
+                    .message("Đã tạo đơn hàng và đường dẫn thanh toán VNPay thành công")
+                    .result(paymentResponse)
+                    .build());
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.builder()
+                            .code(4005)
+                            .message(e.getMessage())
+                            .build());
+        }
+    }
+
+    /**
+     * Checkout và thanh toán online qua ZaloPay
+     * POST /api/orders/checkout/zalopay
+     */
+    @PostMapping("/checkout/zalopay")
+    public ResponseEntity<?> checkoutWithZaloPay(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CheckoutRequest request) {
+
+        if (jwt == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.builder()
+                            .code(4001)
+                            .message("Vui lòng đăng nhập")
+                            .build());
+        }
+
+        try {
+            String username = jwt.getSubject();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+            // Set payment method to ZaloPay
+            request.setPaymentMethod("ZaloPay");
+
+            // 1. Tạo đơn hàng trước
+            OrderResponse orderResponse = orderService.checkout(user.getId(), request);
+
+            // 2. Tạo payment request
+            PaymentRequest paymentRequest = PaymentRequest.builder()
+                    .orderId(orderResponse.getId())
+                    .amount(orderResponse.getTotal().longValue())
+                    .build();
+
+            // 3. Tạo ZaloPay payment URL
+            CreatePaymentResponse paymentResponse = zaloPayService.createOrderTransaction(paymentRequest);
+
+            return ResponseEntity.ok(ApiResponse.<CreatePaymentResponse>builder()
+                    .code(1000)
+                    .message("Đã tạo đơn hàng và đường dẫn thanh toán ZaloPay thành công")
+                    .result(paymentResponse)
+                    .build());
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.builder()
+                            .code(4005)
+                            .message(e.getMessage())
+                            .build());
+        }
+    }
+
+    /**
+     * Checkout và thanh toán online qua MoMo
+     * POST /api/orders/checkout/momo
+     */
+    @Transactional
+    @PostMapping("/checkout/momo")
+    public ResponseEntity<?> checkoutWithMoMo(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CheckoutRequest request) {
+
+        if (jwt == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.builder()
+                            .code(4001)
+                            .message("Vui lòng đăng nhập")
+                            .build());
+        }
+
+        try {
+            String username = jwt.getSubject();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+            // Set payment method to MoMo
+            request.setPaymentMethod("MoMo");
+
+            // 1. Tạo đơn hàng trước
+            OrderResponse orderResponse = orderService.checkout(user.getId(), request);
+
+            // Log để debug
+            log.info("Created order with ID: {}", orderResponse.getId());
+
+            // 2. Tạo payment request
+            PaymentRequest paymentRequest = PaymentRequest.builder()
+                    .orderId(orderResponse.getId())
+                    .amount(orderResponse.getTotal().longValue())
+                    .build();
+
+            // 3. Tạo MoMo payment URL
+            CreatePaymentResponse paymentResponse = moMoService.createMoMoPayment(paymentRequest);
+
+            return ResponseEntity.ok(ApiResponse.<CreatePaymentResponse>builder()
+                    .code(1000)
+                    .message("Đã tạo đơn hàng và đường dẫn thanh toán MoMo thành công")
+                    .result(paymentResponse)
+                    .build());
+
+        } catch (RuntimeException e) {
+            log.error("Error in checkoutWithMoMo: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.builder()
+                            .code(4005)
+                            .message(e.getMessage())
+                            .build());
+        }
     }
 }

@@ -1,4 +1,4 @@
 package com.notfound.bookstore.payment;
 
-public class VNPayService {
+public class    VNPayService {
 }

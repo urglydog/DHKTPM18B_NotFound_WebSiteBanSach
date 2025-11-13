@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -19,4 +20,11 @@ public class CheckoutRequest {
 
     String note;
     String discountCode;
+
+    /**
+     * Danh sách book IDs cần checkout.
+     * Nếu null hoặc rỗng -> checkout toàn bộ giỏ hàng
+     * Nếu có giá trị -> chỉ checkout các sản phẩm trong danh sách
+     */
+    List<UUID> bookIds;
 }

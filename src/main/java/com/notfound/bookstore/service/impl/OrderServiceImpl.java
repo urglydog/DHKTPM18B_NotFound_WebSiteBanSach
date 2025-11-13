@@ -42,9 +42,30 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         // 2. Lấy giỏ hàng
-        List<CartItem> cartItems = cartService.getCartItems(userId);
-        if (cartItems.isEmpty()) {
+        List<CartItem> allCartItems = cartService.getCartItems(userId);
+        if (allCartItems.isEmpty()) {
             throw new RuntimeException("Giỏ hàng trống");
+        }
+
+        // 2.1. Lọc cart items theo bookIds nếu có (checkout một phần)
+        List<CartItem> cartItems;
+        if (request.getBookIds() != null && !request.getBookIds().isEmpty()) {
+            // Checkout chỉ các sản phẩm được chọn
+            cartItems = allCartItems.stream()
+                    .filter(item -> request.getBookIds().contains(item.getBook().getId()))
+                    .collect(Collectors.toList());
+
+            if (cartItems.isEmpty()) {
+                throw new RuntimeException("Không tìm thấy sản phẩm được chọn trong giỏ hàng");
+            }
+
+            // Validate: tất cả bookIds phải tồn tại trong giỏ
+            if (cartItems.size() != request.getBookIds().size()) {
+                throw new RuntimeException("Một số sản phẩm được chọn không có trong giỏ hàng");
+            }
+        } else {
+            // Checkout toàn bộ giỏ hàng
+            cartItems = allCartItems;
         }
 
         // 3. Tính tổng tiền
@@ -119,8 +140,16 @@ public class OrderServiceImpl implements OrderService {
 
         orderItemRepository.saveAll(orderItems);
 
-        // 8. Xóa giỏ hàng sau khi checkout thành công
-        cartService.clearCart(userId);
+        // 8. Xóa các sản phẩm đã checkout khỏi giỏ hàng
+        if (request.getBookIds() != null && !request.getBookIds().isEmpty()) {
+            // Xóa chỉ các sản phẩm đã checkout
+            for (UUID bookId : request.getBookIds()) {
+                cartService.removeBookFromCart(userId, bookId);
+            }
+        } else {
+            // Xóa toàn bộ giỏ hàng
+            cartService.clearCart(userId);
+        }
 
         // 9. Tạo response
         return buildOrderResponse(order, orderItems, promotion, discountAmount, subtotal);
