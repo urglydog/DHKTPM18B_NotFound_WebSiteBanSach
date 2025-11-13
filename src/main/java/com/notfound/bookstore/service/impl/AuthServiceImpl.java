@@ -48,8 +48,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
+        // Tìm user bằng username hoặc email
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseGet(() -> userRepository.findByEmail(request.getUsername())
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
