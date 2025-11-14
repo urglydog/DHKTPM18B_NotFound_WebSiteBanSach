@@ -19,7 +19,16 @@ public class OrderResponse {
     String orderCode;
     LocalDateTime orderDate;
     String status;
+    BigDecimal subtotal;
     BigDecimal total;
+    String paymentMethod;
+
+    // Thông tin khuyến mãi
+    String promotionCode;
+    String promotionName;
+    Double discountPercent;
+    BigDecimal discountAmount;
+
     List<OrderItemResponse> items;
     AddressResponse shippingAddress;
 }

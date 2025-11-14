@@ -1,5 +1,6 @@
 package com.notfound.bookstore.controller;
 
+import com.notfound.bookstore.model.dto.request.paymentrequest.MoMoCallbackRequest;
 import com.notfound.bookstore.model.dto.request.paymentrequest.PaymentRequest;
 import com.notfound.bookstore.model.dto.request.paymentrequest.VNPayCallbackRequest;
 import com.notfound.bookstore.model.dto.request.paymentrequest.ZaloPayCallbackRequest;
@@ -8,6 +9,7 @@ import com.notfound.bookstore.model.dto.response.paymentresponse.CreatePaymentRe
 import com.notfound.bookstore.model.dto.response.paymentresponse.PaymentResponse;
 import com.notfound.bookstore.model.dto.response.paymentresponse.ZaloPayCallBackResponseDTO;
 import com.notfound.bookstore.payment.VNPayService;
+import com.notfound.bookstore.service.impl.MoMoServiceImpl;
 import com.notfound.bookstore.service.impl.VNPayServiceImpl;
 import com.notfound.bookstore.service.impl.ZaloPayServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +33,7 @@ public class PaymentController {
 
     private final VNPayServiceImpl vnPayService;
     private final ZaloPayServiceImpl zaloPayService;
+    private final MoMoServiceImpl moMoService;
 
     /**
      * Tạo URL thanh toán VNPay
@@ -50,6 +53,16 @@ public class PaymentController {
                 .code(200)
                 .result(vnPayPaymentUrl)
                 .message("Đã tạo đường dẫn thanh toán thành công")
+                .build();
+    }
+
+    @GetMapping("/vnpay/callback")
+    public ApiResponse<PaymentResponse> handleVNPayReturn(VNPayCallbackRequest vnpParams) {
+        PaymentResponse paymentResponse = vnPayService.handleVNPayReturn(vnpParams);
+        return ApiResponse.<PaymentResponse>builder()
+                .code(200)
+                .result(paymentResponse)
+                .message("Thanh toán thành công")
                 .build();
     }
 
@@ -117,5 +130,49 @@ public class PaymentController {
                 .code(200)
                 .message("Thành công")
                 .build();
-    };
+    }
+
+    /**
+     * Tạo payment URL MoMo
+     * POST /api/payment/momo/create
+     */
+    @PostMapping("/momo/create")
+    public ApiResponse<CreatePaymentResponse> createMoMoPayment(
+            @RequestBody @Valid PaymentRequest request
+    ) {
+        CreatePaymentResponse moMoPaymentUrl = moMoService.createMoMoPayment(request);
+        return ApiResponse.<CreatePaymentResponse>builder()
+                .code(200)
+                .result(moMoPaymentUrl)
+                .message("Đã tạo đường dẫn thanh toán MoMo thành công")
+                .build();
+    }
+
+    /**
+     * MoMo callback endpoint
+     * POST /api/payment/momo/callback
+     */
+    @PostMapping("/momo/callback")
+    public ApiResponse<PaymentResponse> handleMoMoCallback(
+            @RequestBody MoMoCallbackRequest callback
+    ) {
+        PaymentResponse paymentResponse = moMoService.handleMoMoCallback(callback);
+        return ApiResponse.<PaymentResponse>builder()
+                .code(200)
+                .result(paymentResponse)
+                .message("Xử lý callback MoMo thành công")
+                .build();
+    }
+
+    /**
+     * MoMo return URL (user redirect back)
+     * GET /api/payment/momo/return
+     */
+    @GetMapping("/momo/return")
+    public ApiResponse<PaymentResponse> handleMoMoReturn() {
+        return ApiResponse.<PaymentResponse>builder()
+                .code(200)
+                .message("Thanh toán MoMo thành công")
+                .build();
+    }
 }
