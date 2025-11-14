@@ -20,4 +20,6 @@ public interface AuthService {
     String generateEmailVerificationToken(String email);
 
     String validateEmailVerificationToken(String token);
+
+    AuthResponse handleGoogleOAuthCallback(String code);
 }

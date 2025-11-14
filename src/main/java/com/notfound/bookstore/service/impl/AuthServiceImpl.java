@@ -19,12 +19,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
+import jakarta.annotation.PostConstruct;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -33,10 +41,21 @@ public class AuthServiceImpl implements AuthService {
     UserRepository userRepository;
     PasswordEncoder passwordEncoder;
     UserMapper userMapper;
+    Environment environment;
+    RestTemplate restTemplate = new RestTemplate();
 
     @NonFinal
     @Value("${jwt.signerKey}")
     protected String SIGNER_KEY;
+
+    @NonFinal
+    protected String GOOGLE_CLIENT_ID;
+
+    @NonFinal
+    protected String GOOGLE_CLIENT_SECRET;
+
+    @NonFinal
+    protected String GOOGLE_REDIRECT_URI;
 
     @NonFinal
     @Value("${jwt.valid-duration}")
@@ -45,11 +64,24 @@ public class AuthServiceImpl implements AuthService {
     @NonFinal
     @Value("${jwt.refreshable-duration}")
     protected long REFRESHABLE_DURATION;
+    
+    @PostConstruct
+    protected void init() {
+        GOOGLE_CLIENT_ID = environment.getProperty("spring.security.oauth2.client.registration.google.client-id");
+        GOOGLE_CLIENT_SECRET = environment.getProperty("spring.security.oauth2.client.registration.google.client-secret");
+        GOOGLE_REDIRECT_URI = environment.getProperty("spring.security.oauth2.client.registration.google.redirect-uri");
+        
+        if (GOOGLE_CLIENT_ID == null || GOOGLE_CLIENT_SECRET == null || GOOGLE_REDIRECT_URI == null) {
+            throw new IllegalStateException("Google OAuth2 configuration is missing. Please check application-develop.yml");
+        }
+    }
 
     @Override
     public AuthResponse login(LoginRequest request) {
+        // Tìm user bằng username hoặc email
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseGet(() -> userRepository.findByEmail(request.getUsername())
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
@@ -192,6 +224,137 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             throw new AppException(ErrorCode.INVALID_TOKEN);
         }
+    }
+
+    @Override
+    public AuthResponse handleGoogleOAuthCallback(String code) {
+        // Bước 1: Trao đổi authorization code lấy access token
+        String accessToken = exchangeCodeForToken(code);
+        
+        // Bước 2: Lấy thông tin user từ Google
+        Map<String, Object> googleUserInfo = getUserInfoFromGoogle(accessToken);
+        
+        // Bước 3: Tạo hoặc tìm user trong database
+        User user = createOrUpdateUserFromGoogle(googleUserInfo);
+        
+        // Bước 4: Tạo JWT token và trả về
+        String token = generateToken(user);
+        String refreshToken = generateRefreshToken(user);
+        UserResponse userResponse = userMapper.toUserResponse(user);
+        
+        return AuthResponse.builder()
+                .token(token)
+                .refreshToken(refreshToken)
+                .user(userResponse)
+                .build();
+    }
+
+    private String exchangeCodeForToken(String code) {
+        String tokenUrl = "https://oauth2.googleapis.com/token";
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("code", code);
+        params.add("client_id", GOOGLE_CLIENT_ID);
+        params.add("client_secret", GOOGLE_CLIENT_SECRET);
+        params.add("redirect_uri", GOOGLE_REDIRECT_URI);
+        params.add("grant_type", "authorization_code");
+        
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    tokenUrl,
+                    HttpMethod.POST,
+                    request,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("access_token")) {
+                return (String) responseBody.get("access_token");
+            }
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        }
+    }
+
+    private Map<String, Object> getUserInfoFromGoogle(String accessToken) {
+        String userInfoUrl = "https://www.googleapis.com/oauth2/v2/userinfo";
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    userInfoUrl,
+                    HttpMethod.GET,
+                    entity,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            Map<String, Object> body = response.getBody();
+            if (body == null) {
+                throw new AppException(ErrorCode.INVALID_TOKEN);
+            }
+            return body;
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        }
+    }
+
+    private User createOrUpdateUserFromGoogle(Map<String, Object> googleUserInfo) {
+        String email = (String) googleUserInfo.get("email");
+        String name = (String) googleUserInfo.get("name");
+        String picture = (String) googleUserInfo.get("picture");
+        
+        if (email == null || email.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        }
+        
+        // Tìm user theo email
+        User user = userRepository.findByEmail(email).orElse(null);
+        
+        if (user == null) {
+            // Tạo user mới nếu chưa tồn tại
+            // Tạo username từ email hoặc Google ID
+            String username = email.split("@")[0];
+            // Đảm bảo username là unique
+            int suffix = 1;
+            String originalUsername = username;
+            while (userRepository.existsByUsername(username)) {
+                username = originalUsername + "_" + suffix;
+                suffix++;
+            }
+            
+            // Tạo password random (vì OAuth user không có password)
+            String randomPassword = UUID.randomUUID().toString();
+            
+            user = User.builder()
+                    .username(username)
+                    .password(passwordEncoder.encode(randomPassword))
+                    .email(email)
+                    .fullName(name != null ? name : "")
+                    .avatar_url(picture)
+                    .role(Role.CUSTOMER)
+                    .build();
+            
+            user = userRepository.save(user);
+        } else {
+            // Cập nhật thông tin nếu user đã tồn tại
+            if (name != null && !name.isEmpty()) {
+                user.setFullName(name);
+            }
+            if (picture != null && !picture.isEmpty()) {
+                user.setAvatar_url(picture);
+            }
+            user = userRepository.save(user);
+        }
+        
+        return user;
     }
 
 }

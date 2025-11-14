@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,5 +14,6 @@ import lombok.NoArgsConstructor;
 public class BookImage extends BaseImage {
     @ManyToOne
     @JoinColumn(name = "book_id")
+    @JsonBackReference
     Book book;
 }

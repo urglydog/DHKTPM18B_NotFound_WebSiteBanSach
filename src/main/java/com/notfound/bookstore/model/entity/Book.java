@@ -19,6 +19,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @ToString(exclude = {"authors", "categories", "reviews", "orderItems", "cartItems", "wishlists"})
 public class Book {
@@ -66,6 +67,7 @@ public class Book {
         joinColumns = @JoinColumn(name = "book_id"),
         inverseJoinColumns = @JoinColumn(name = "author_id")
     )
+    @JsonManagedReference
     List<Author> authors;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -81,15 +83,19 @@ public class Book {
     List<Review> reviews;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
     List<OrderItem> orderItems;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
     List<CartItem> cartItems;
 
     @ManyToMany(mappedBy = "books", fetch = FetchType.LAZY)
+    @JsonManagedReference
     List<Wishlist> wishlists;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, fetch = FetchType.LAZY,  orphanRemoval = true)
+    @JsonManagedReference
     List<BookImage> images;
 
     public enum Status {

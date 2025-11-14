@@ -21,6 +21,11 @@ import org.springframework.web.bind.annotation.*;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
+/**
+ * Controller xử lý các chức năng thanh toán
+ * Tích hợp với các cổng thanh toán: VNPay và ZaloPay
+ * Bao gồm tạo đơn thanh toán và xử lý callback từ cổng thanh toán
+ */
 @RestController
 @RequestMapping("/api/payment")
 @RequiredArgsConstructor
@@ -31,8 +36,12 @@ public class PaymentController {
     private final MoMoServiceImpl moMoService;
 
     /**
-     * Tạo payment URL VNPay
-     * POST /api/payment/vnpay/create
+     * Tạo URL thanh toán VNPay
+     * Người dùng sẽ được chuyển hướng đến trang thanh toán của VNPay
+     *
+     * @param request Thông tin thanh toán bao gồm orderId và amount
+     * @param httpServletRequest Request từ client để lấy thông tin IP và domain
+     * @return URL thanh toán VNPay để redirect người dùng
      */
     @PostMapping("/vnpay/create")
     public ApiResponse<CreatePaymentResponse> createVNPayPayment(
@@ -59,7 +68,10 @@ public class PaymentController {
 
     /**
      * Tạo đơn hàng thanh toán ZaloPay
-     * POST /api/payment/zalopay/create
+     * Khởi tạo giao dịch và trả về URL để redirect người dùng đến trang thanh toán ZaloPay
+     *
+     * @param request Thông tin thanh toán bao gồm orderId và amount
+     * @return URL thanh toán ZaloPay (order_url) để redirect người dùng
      */
     @PostMapping("/zalopay/create")
     public ApiResponse<CreatePaymentResponse> createPayment(
@@ -73,11 +85,45 @@ public class PaymentController {
                         .build();
     }
 
+    /**
+     * Xử lý callback từ VNPay sau khi thanh toán
+     * Endpoint này được VNPay gọi sau khi người dùng hoàn tất thanh toán
+     * Xác thực chữ ký và cập nhật trạng thái đơn hàng
+     *
+     * @param vnpParams Các tham số callback từ VNPay bao gồm vnp_ResponseCode, vnp_TransactionNo, vnp_SecureHash
+     * @return Kết quả xử lý thanh toán bao gồm trạng thái và thông tin giao dịch
+     */
+    @GetMapping("/vnpay/callback")
+    public ApiResponse<PaymentResponse> handleVNPayReturn(VNPayCallbackRequest vnpParams) {
+        PaymentResponse paymentResponse = vnPayService.handleVNPayReturn(vnpParams);
+        return ApiResponse.<PaymentResponse>builder()
+                .code(200)
+                .result(paymentResponse)
+                .message("Thanh toán thành công")
+                .build();
+    }
+
+    /**
+     * Xử lý callback từ ZaloPay sau khi thanh toán
+     * Endpoint này được ZaloPay server gọi để thông báo kết quả thanh toán
+     * Xác thực MAC và cập nhật trạng thái đơn hàng
+     *
+     * @param body Dữ liệu callback từ ZaloPay bao gồm data (JSON string) và mac (chữ ký)
+     * @return Response theo format của ZaloPay (return_code, return_message)
+     */
     @PostMapping("/zalopay/callback")
     public ZaloPayCallBackResponseDTO callbackZaloPay(@RequestBody ZaloPayCallbackRequest body) {
         return zaloPayService.processCallback(body);
     }
 
+
+    /**
+     * Xử lý return URL từ ZaloPay
+     * Endpoint này được gọi khi người dùng quay lại website sau khi thanh toán
+     * Hiển thị kết quả thanh toán cho người dùng
+     *
+     * @return Thông báo kết quả thanh toán
+     */
     @GetMapping("/zalopay/return")
     public ApiResponse<PaymentResponse> handleZaloPayReturn(){
         return ApiResponse.<PaymentResponse>builder()
