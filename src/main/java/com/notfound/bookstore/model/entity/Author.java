@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -35,6 +36,7 @@ public class Author {
     String nationality;
 
     @ManyToMany(mappedBy = "authors", fetch = FetchType.LAZY)
+    @JsonBackReference
     List<Book> books;
 
 }
