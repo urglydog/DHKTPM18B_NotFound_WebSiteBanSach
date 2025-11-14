@@ -28,7 +28,6 @@ public class AuthorController {
 
     private final AuthorService authorService;
 
-    // GetALl
     @GetMapping
     public ApiResponse<PageResponse<AuthorSummaryResponse>> getAllAuthors(
             @RequestParam(defaultValue = "0") int page,
@@ -48,34 +47,52 @@ public class AuthorController {
     }
 
     @PostMapping("/search")
-    public ResponseEntity<PageResponse<AuthorSummaryResponse>> searchByName(
+    public ApiResponse<PageResponse<AuthorSummaryResponse>> searchByName(
             @RequestBody AuthorSearchRequest request) {
-        return ResponseEntity.ok(authorService.searchByName(request));
+        return ApiResponse.<PageResponse<AuthorSummaryResponse>>builder()
+                .code(1000)
+                .message("Tìm kiếm tác giả thành công")
+                .result(authorService.searchByName(request))
+                .build();
     }
 
-    // sắp xếp theo tên: asc, desc
     @PostMapping("/filter")
-    public ResponseEntity<PageResponse<AuthorSummaryResponse>> filterAuthors(
+    public ApiResponse<PageResponse<AuthorSummaryResponse>> filterAuthors(
             @RequestBody AuthorFilterRequest request) {
-        return ResponseEntity.ok(authorService.filterAuthors(request));
+        return ApiResponse.<PageResponse<AuthorSummaryResponse>>builder()
+                .code(1000)
+                .message("Lọc tác giả thành công")
+                .result(authorService.filterAuthors(request))
+                .build();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AuthorResponse> getAuthorById(@PathVariable UUID id) {
-        return ResponseEntity.ok(authorService.getAuthorById(id));
+    public ApiResponse<AuthorResponse> getAuthorById(@PathVariable UUID id) {
+        return ApiResponse.<AuthorResponse>builder()
+                .code(1000)
+                .message("Lấy thông tin tác giả thành công")
+                .result(authorService.getAuthorById(id))
+                .build();
     }
 
     @PostMapping
-    public ResponseEntity<AuthorResponse> createAuthor(@Valid @RequestBody AuthorRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(authorService.createAuthor(request));
+    public ApiResponse<AuthorResponse> createAuthor(@Valid @RequestBody AuthorRequest request) {
+        return ApiResponse.<AuthorResponse>builder()
+                .code(1000)
+                .message("Tạo tác giả thành công")
+                .result(authorService.createAuthor(request))
+                .build();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AuthorResponse> updateAuthor(
+    public ApiResponse<AuthorResponse> updateAuthor(
             @PathVariable UUID id,
             @Valid @RequestBody AuthorRequest request) {
-        return ResponseEntity.ok(authorService.updateAuthor(id, request));
+        return ApiResponse.<AuthorResponse>builder()
+                .code(1000)
+                .message("Cập nhật tác giả thành công")
+                .result(authorService.updateAuthor(id, request))
+                .build();
     }
 
 }
