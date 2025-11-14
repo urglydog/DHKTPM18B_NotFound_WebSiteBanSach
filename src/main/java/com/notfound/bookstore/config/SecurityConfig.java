@@ -23,72 +23,96 @@ import javax.crypto.spec.SecretKeySpec;
 @EnableWebSecurity
 public class SecurityConfig {
 
-        @Autowired
-        private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    @Autowired
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-        private final String[] PUBLIC_ENDPOINTS = {
-                        "/api/public/**",
-                        "/api/auth/**",
-                        "/api/auth/register",
-                        "/api/auth/introspect",
-                        "/api/review/book/{bookId}",
-                        "/api/auth/introspect",
-                        "/api/books/**",
-                        "/api/authors/**",
-                        "/api/payment/vnpay/callback",
-                        "/api/payment/zalopay/callback",
-                        "/api/payment/zalopay/return",
-                        "/api/promotions/active",
-                        "/api/promotions/book/**",
-                        "/api/promotions/validate",
-                        "/api/categories/**",
-        };
+    private final String[] PUBLIC_ENDPOINTS = {
+            "/api/public/**",
 
-        @Value("${jwt.signerKey}")
-        private String signerKey;
+            // Auth
+            "/api/auth/**",
+            "/api/auth/register",
+            "/api/auth/login",
+            "/api/auth/send-otp",
+            "/api/auth/verify-otp",
+            "/api/auth/verify-email",
+            "/api/auth/confirm-email",
+            "/api/auth/google/callback",
+            "/api/auth/introspect",
 
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-                http
-                                .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                                                .anyRequest().authenticated())
-                                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
-                                                .decoder(jwtDecoder())
-                                                .jwtAuthenticationConverter(jwtAuthenticationConverter())))
-                                .exceptionHandling(exception -> exception
-                                                .authenticationEntryPoint(jwtAuthenticationEntryPoint))
-                                .oauth2ResourceServer(oauth2 -> oauth2
-                                                .jwt(Customizer.withDefaults())
-                                                .authenticationEntryPoint(jwtAuthenticationEntryPoint))
-                                .csrf(AbstractHttpConfigurer::disable);
+            // Books – Categories – Authors
+            "/api/books/**",
+            "/api/categories/**",
+            "/api/authors/**",
 
-                return http.build();
-        }
+            // Review
+            "/api/review/book/{bookId}",
 
-        @Bean
-        public JwtAuthenticationConverter jwtAuthenticationConverter() {
-                JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-                grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
+            // Payment
+            "/api/payment/vnpay/callback",
+            "/api/payment/zalopay/callback",
+            "/api/payment/zalopay/return",
 
-                JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-                jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+            // Promotions
+            "/api/promotions/active",
+            "/api/promotions/book/**",
+            "/api/promotions/validate",
 
-                return jwtAuthenticationConverter;
-        }
+            // OAuth2
+            "/oauth2/**",
+    };
 
-        @Bean
-        public JwtDecoder jwtDecoder() {
-                SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
-                return NimbusJwtDecoder
-                                .withSecretKey(secretKeySpec)
-                                .macAlgorithm(MacAlgorithm.HS512)
-                                .build();
-        }
+    @Value("${jwt.signerKey}")
+    private String signerKey;
 
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder(10);
-        }
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(oauth2 ->
+                        oauth2.jwt(jwtConfigurer ->
+                                jwtConfigurer.decoder(jwtDecoder())
+                                        .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                        )
+                )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(Customizer.withDefaults())
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
+                .csrf(AbstractHttpConfigurer::disable);
+
+        return http.build();
+    }
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
+
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+
+        return jwtAuthenticationConverter;
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
+        return NimbusJwtDecoder
+                .withSecretKey(secretKeySpec)
+                .macAlgorithm(MacAlgorithm.HS512)
+                .build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(10);
+    }
 }
