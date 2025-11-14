@@ -1,11 +1,10 @@
 package com.notfound.bookstore.controller;
 
-
 import com.notfound.bookstore.model.dto.request.cartrequest.AddToCartRequest;
 import com.notfound.bookstore.model.dto.request.cartrequest.UpdateCartItemRequest;
 import com.notfound.bookstore.model.dto.request.orderrequest.CheckoutRequest;
-import com.notfound.bookstore.model.dto.response.cartresponse.CartItemResponse;
-import com.notfound.bookstore.model.dto.response.cartresponse.CartResponse;
+import com.notfound.bookstore.model.dto.response.ApiResponse;
+import com.notfound.bookstore.model.dto.response.cartresponse.*;
 import com.notfound.bookstore.model.dto.response.orderresponse.OrderResponse;
 import com.notfound.bookstore.model.entity.Cart;
 import com.notfound.bookstore.model.entity.CartItem;
@@ -16,15 +15,11 @@ import com.notfound.bookstore.service.CartService;
 import com.notfound.bookstore.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -41,11 +36,13 @@ public class CartController {
      * Lấy thông tin giỏ hàng
      */
     @GetMapping
-    public ResponseEntity<?> getCart(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<CartResponse> getCart(@AuthenticationPrincipal Jwt jwt) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("success", false, "message", "Vui lòng đăng nhập"));
+            return ApiResponse.<CartResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         String username = jwt.getSubject();
@@ -56,39 +53,43 @@ public class CartController {
         List<CartItem> items = cartService.getCartItems(user.getId());
 
         if (items.isEmpty()) {
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Không có sản phẩm trong giỏ hàng",
-                    "cart", CartResponse.builder()
-                            .cartId(cart.getCartID())
-                            .userId(user.getId())
-                            .items(List.of())
-                            .itemCount(0L)
-                            .totalPrice(0.0)
-                            .build()
-            ));
+            CartResponse emptyCart = CartResponse.builder()
+                    .cartId(cart.getCartID())
+                    .userId(user.getId())
+                    .items(List.of())
+                    .itemCount(0L)
+                    .totalPrice(0.0)
+                    .build();
+
+            return ApiResponse.<CartResponse>builder()
+                    .code(1000)
+                    .message("Không có sản phẩm trong giỏ hàng")
+                    .result(emptyCart)
+                    .build();
         }
 
         CartResponse cartResponse = cartMapper.toCartResponse(cart, items);
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Lấy giỏ hàng thành công",
-                "cart", cartResponse
-        ));
+        return ApiResponse.<CartResponse>builder()
+                .code(1000)
+                .message("Lấy giỏ hàng thành công")
+                .result(cartResponse)
+                .build();
     }
 
     /**
      * Thêm sách vào giỏ hàng
      */
     @PostMapping("/add")
-    public ResponseEntity<?> addToCart(
+    public ApiResponse<AddToCartResponse> addToCart(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody AddToCartRequest request) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("success", false, "message", "Vui lòng đăng nhập"));
+            return ApiResponse.<AddToCartResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
@@ -102,19 +103,24 @@ public class CartController {
                     request.getQuantity()
             );
 
-            CartItemResponse response = cartMapper.toCartItemResponse(cartItem);
+            CartItemResponse cartItemResponse = cartMapper.toCartItemResponse(cartItem);
             Long itemCount = cartService.getCartItemCount(user.getId());
 
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("message", "Đã thêm sản phẩm vào giỏ hàng");
-            result.put("cartItem", response);
-            result.put("cartItemCount", itemCount);
+            AddToCartResponse response = AddToCartResponse.builder()
+                    .cartItem(cartItemResponse)
+                    .cartItemCount(itemCount)
+                    .build();
 
-            return ResponseEntity.ok(result);
+            return ApiResponse.<AddToCartResponse>builder()
+                    .code(1000)
+                    .message("Đã thêm sản phẩm vào giỏ hàng")
+                    .result(response)
+                    .build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+            return ApiResponse.<AddToCartResponse>builder()
+                    .code(4003)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 
@@ -122,14 +128,16 @@ public class CartController {
      * Cập nhật số lượng sản phẩm trong giỏ
      */
     @PutMapping("/update/{bookId}")
-    public ResponseEntity<?> updateCartItem(
+    public ApiResponse<UpdateCartResponse> updateCartItem(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID bookId,
             @Valid @RequestBody UpdateCartItemRequest request) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("success", false, "message", "Vui lòng đăng nhập"));
+            return ApiResponse.<UpdateCartResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
@@ -143,19 +151,24 @@ public class CartController {
                     request.getQuantity()
             );
 
-            CartItemResponse response = cartMapper.toCartItemResponse(cartItem);
+            CartItemResponse cartItemResponse = cartMapper.toCartItemResponse(cartItem);
             Double totalPrice = cartService.getCartTotal(user.getId());
 
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("message", "Đã cập nhật số lượng");
-            result.put("cartItem", response);
-            result.put("totalPrice", totalPrice);
+            UpdateCartResponse response = UpdateCartResponse.builder()
+                    .cartItem(cartItemResponse)
+                    .totalPrice(totalPrice)
+                    .build();
 
-            return ResponseEntity.ok(result);
+            return ApiResponse.<UpdateCartResponse>builder()
+                    .code(1000)
+                    .message("Đã cập nhật số lượng")
+                    .result(response)
+                    .build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+            return ApiResponse.<UpdateCartResponse>builder()
+                    .code(4003)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 
@@ -163,13 +176,15 @@ public class CartController {
      * Xóa sản phẩm khỏi giỏ hàng
      */
     @DeleteMapping("/remove/{bookId}")
-    public ResponseEntity<?> removeFromCart(
+    public ApiResponse<RemoveCartResponse> removeFromCart(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID bookId) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("success", false, "message", "Vui lòng đăng nhập"));
+            return ApiResponse.<RemoveCartResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
@@ -182,22 +197,25 @@ public class CartController {
             Long itemCount = cartService.getCartItemCount(user.getId());
             Double totalPrice = cartService.getCartTotal(user.getId());
 
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
+            RemoveCartResponse response = RemoveCartResponse.builder()
+                    .cartItemCount(itemCount)
+                    .totalPrice(totalPrice)
+                    .build();
 
-            if (itemCount == 0) {
-                result.put("message", "Đã xóa sản phẩm. Giỏ hàng hiện đang trống");
-            } else {
-                result.put("message", "Đã xóa sản phẩm khỏi giỏ hàng");
-            }
+            String message = itemCount == 0
+                    ? "Đã xóa sản phẩm. Giỏ hàng hiện đang trống"
+                    : "Đã xóa sản phẩm khỏi giỏ hàng";
 
-            result.put("cartItemCount", itemCount);
-            result.put("totalPrice", totalPrice);
-
-            return ResponseEntity.ok(result);
+            return ApiResponse.<RemoveCartResponse>builder()
+                    .code(1000)
+                    .message(message)
+                    .result(response)
+                    .build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+            return ApiResponse.<RemoveCartResponse>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 
@@ -205,10 +223,12 @@ public class CartController {
      * Xóa toàn bộ giỏ hàng
      */
     @DeleteMapping("/clear")
-    public ResponseEntity<?> clearCart(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<Void> clearCart(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("success", false, "message", "Vui lòng đăng nhập"));
+            return ApiResponse.<Void>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
@@ -219,21 +239,23 @@ public class CartController {
             Long itemCount = cartService.getCartItemCount(user.getId());
 
             if (itemCount == 0) {
-                return ResponseEntity.ok(Map.of(
-                        "success", true,
-                        "message", "Giỏ hàng đã trống"
-                ));
+                return ApiResponse.<Void>builder()
+                        .code(1000)
+                        .message("Giỏ hàng đã trống")
+                        .build();
             }
 
             cartService.clearCart(user.getId());
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Đã xóa toàn bộ giỏ hàng"
-            ));
+            return ApiResponse.<Void>builder()
+                    .code(1000)
+                    .message("Đã xóa toàn bộ giỏ hàng")
+                    .build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+            return ApiResponse.<Void>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 
@@ -241,9 +263,12 @@ public class CartController {
      * Lấy số lượng items trong giỏ
      */
     @GetMapping("/count")
-    public ResponseEntity<?> getCartItemCount(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<Long> getCartItemCount(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
-            return ResponseEntity.ok(Map.of("count", 0));
+            return ApiResponse.<Long>builder()
+                    .code(1000)
+                    .result(0L)
+                    .build();
         }
 
         String username = jwt.getSubject();
@@ -252,19 +277,26 @@ public class CartController {
 
         Long count = cartService.getCartItemCount(user.getId());
 
-        return ResponseEntity.ok(Map.of("count", count));
+        return ApiResponse.<Long>builder()
+                .code(1000)
+                .message("Lấy số lượng items thành công")
+                .result(count)
+                .build();
     }
 
     /**
      * Kiểm tra sách có trong giỏ không
      */
     @GetMapping("/check/{bookId}")
-    public ResponseEntity<?> checkBookInCart(
+    public ApiResponse<Boolean> checkBookInCart(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID bookId) {
 
         if (jwt == null) {
-            return ResponseEntity.ok(Map.of("inCart", false));
+            return ApiResponse.<Boolean>builder()
+                    .code(1000)
+                    .result(false)
+                    .build();
         }
 
         String username = jwt.getSubject();
@@ -273,20 +305,26 @@ public class CartController {
 
         boolean inCart = cartService.isBookInCart(user.getId(), bookId);
 
-        return ResponseEntity.ok(Map.of("inCart", inCart));
+        return ApiResponse.<Boolean>builder()
+                .code(1000)
+                .message("Kiểm tra sách trong giỏ hàng thành công")
+                .result(inCart)
+                .build();
     }
 
     /**
      * Checkout giỏ hàng (tạo đơn hàng từ giỏ hàng)
      */
     @PostMapping("/checkout")
-    public ResponseEntity<?> checkout(
+    public ApiResponse<OrderResponse> checkout(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody(required = false) CheckoutRequest request) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("success", false, "message", "Vui lòng đăng nhập"));
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
@@ -303,21 +341,24 @@ public class CartController {
 
             // Validate paymentMethod
             if (request.getPaymentMethod() == null || request.getPaymentMethod().trim().isEmpty()) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "message", "Vui lòng chọn phương thức thanh toán"));
+                return ApiResponse.<OrderResponse>builder()
+                        .code(4003)
+                        .message("Vui lòng chọn phương thức thanh toán")
+                        .build();
             }
 
             OrderResponse orderResponse = orderService.checkout(user.getId(), request);
 
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("message", "Đặt hàng thành công");
-            result.put("order", orderResponse);
-
-            return ResponseEntity.ok(result);
+            return ApiResponse.<OrderResponse>builder()
+                    .code(1000)
+                    .message("Đặt hàng thành công")
+                    .result(orderResponse)
+                    .build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4005)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 }

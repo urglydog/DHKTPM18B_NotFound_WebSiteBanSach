@@ -19,8 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,13 +44,12 @@ public class OrderController {
      * GET /api/orders
      */
     @GetMapping
-    public ResponseEntity<?> getMyOrders(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<List<OrderResponse>> getMyOrders(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.builder()
-                            .code(4001)
-                            .message("Vui lòng đăng nhập")
-                            .build());
+            return ApiResponse.<List<OrderResponse>>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         String username = jwt.getSubject();
@@ -61,11 +58,11 @@ public class OrderController {
 
         List<OrderResponse> orders = orderService.getOrdersByUserId(user.getId());
 
-        return ResponseEntity.ok(ApiResponse.<List<OrderResponse>>builder()
+        return ApiResponse.<List<OrderResponse>>builder()
                 .code(1000)
                 .message("Lấy danh sách đơn hàng thành công")
                 .result(orders)
-                .build());
+                .build();
     }
 
     /**
@@ -73,32 +70,30 @@ public class OrderController {
      * GET /api/orders/{orderId}
      */
     @GetMapping("/{orderId}")
-    public ResponseEntity<?> getOrderById(
+    public ApiResponse<OrderResponse> getOrderById(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID orderId) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.builder()
-                            .code(4001)
-                            .message("Vui lòng đăng nhập")
-                            .build());
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
             OrderResponse order = orderService.getOrderById(orderId);
 
-            return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
+            return ApiResponse.<OrderResponse>builder()
                     .code(1000)
                     .message("Lấy thông tin đơn hàng thành công")
                     .result(order)
-                    .build());
+                    .build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder()
-                            .code(4004)
-                            .message(e.getMessage())
-                            .build());
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 
@@ -107,16 +102,15 @@ public class OrderController {
      * POST /api/orders/{orderId}/cancel
      */
     @PostMapping("/{orderId}/cancel")
-    public ResponseEntity<?> cancelOrder(
+    public ApiResponse<OrderResponse> cancelOrder(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID orderId) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.builder()
-                            .code(4001)
-                            .message("Vui lòng đăng nhập")
-                            .build());
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
@@ -126,17 +120,16 @@ public class OrderController {
 
             OrderResponse order = orderService.cancelOrder(orderId, user.getId());
 
-            return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
+            return ApiResponse.<OrderResponse>builder()
                     .code(1000)
                     .message("Hủy đơn hàng thành công")
                     .result(order)
-                    .build());
+                    .build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder()
-                            .code(4005)
-                            .message(e.getMessage())
-                            .build());
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4005)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 
@@ -145,18 +138,18 @@ public class OrderController {
      * GET /api/orders/admin/all?page=0&size=10
      */
     @GetMapping("/admin/all")
-    public ResponseEntity<?> getAllOrders(
+    public ApiResponse<Page<OrderResponse>> getAllOrders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<OrderResponse> orders = orderService.getAllOrders(pageable);
 
-        return ResponseEntity.ok(ApiResponse.<Page<OrderResponse>>builder()
+        return ApiResponse.<Page<OrderResponse>>builder()
                 .code(1000)
                 .message("Lấy danh sách đơn hàng thành công")
                 .result(orders)
-                .build());
+                .build();
     }
 
     /**
@@ -164,7 +157,7 @@ public class OrderController {
      * PUT /api/orders/admin/{orderId}/status?status=CONFIRMED
      */
     @PutMapping("/admin/{orderId}/status")
-    public ResponseEntity<?> updateOrderStatus(
+    public ApiResponse<OrderResponse> updateOrderStatus(
             @PathVariable UUID orderId,
             @RequestParam String status) {
 
@@ -172,23 +165,21 @@ public class OrderController {
             OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
             OrderResponse order = orderService.updateOrderStatus(orderId, orderStatus);
 
-            return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
+            return ApiResponse.<OrderResponse>builder()
                     .code(1000)
                     .message("Cập nhật trạng thái đơn hàng thành công")
                     .result(order)
-                    .build());
+                    .build();
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder()
-                            .code(4003)
-                            .message("Trạng thái không hợp lệ. Các trạng thái: PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED, COMPLETED")
-                            .build());
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4003)
+                    .message("Trạng thái không hợp lệ. Các trạng thái: PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED, COMPLETED")
+                    .build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder()
-                            .code(4004)
-                            .message(e.getMessage())
-                            .build());
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 
@@ -197,22 +188,21 @@ public class OrderController {
      * GET /api/orders/admin/status/{status}
      */
     @GetMapping("/admin/status/{status}")
-    public ResponseEntity<?> getOrdersByStatus(@PathVariable String status) {
+    public ApiResponse<List<OrderResponse>> getOrdersByStatus(@PathVariable String status) {
         try {
             OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
             List<OrderResponse> orders = orderService.getOrdersByStatus(orderStatus);
 
-            return ResponseEntity.ok(ApiResponse.<List<OrderResponse>>builder()
+            return ApiResponse.<List<OrderResponse>>builder()
                     .code(1000)
                     .message("Lấy danh sách đơn hàng theo trạng thái thành công")
                     .result(orders)
-                    .build());
+                    .build();
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder()
-                            .code(4003)
-                            .message("Trạng thái không hợp lệ")
-                            .build());
+            return ApiResponse.<List<OrderResponse>>builder()
+                    .code(4003)
+                    .message("Trạng thái không hợp lệ")
+                    .build();
         }
     }
 
@@ -221,14 +211,14 @@ public class OrderController {
      * GET /api/orders/admin/revenue
      */
     @GetMapping("/admin/revenue")
-    public ResponseEntity<?> getTotalRevenue() {
+    public ApiResponse<Double> getTotalRevenue() {
         Double revenue = orderService.getTotalRevenue();
 
-        return ResponseEntity.ok(ApiResponse.<Double>builder()
+        return ApiResponse.<Double>builder()
                 .code(1000)
                 .message("Lấy tổng doanh thu thành công")
                 .result(revenue)
-                .build());
+                .build();
     }
 
     /**
@@ -236,12 +226,12 @@ public class OrderController {
      * GET /api/orders/count
      */
     @GetMapping("/count")
-    public ResponseEntity<?> countMyOrders(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<Long> countMyOrders(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
-            return ResponseEntity.ok(ApiResponse.<Long>builder()
+            return ApiResponse.<Long>builder()
                     .code(1000)
                     .result(0L)
-                    .build());
+                    .build();
         }
 
         String username = jwt.getSubject();
@@ -250,11 +240,11 @@ public class OrderController {
 
         Long count = orderService.countOrdersByUserId(user.getId());
 
-        return ResponseEntity.ok(ApiResponse.<Long>builder()
+        return ApiResponse.<Long>builder()
                 .code(1000)
                 .message("Đếm số đơn hàng thành công")
                 .result(count)
-                .build());
+                .build();
     }
 
     /**
@@ -262,16 +252,15 @@ public class OrderController {
      * POST /api/orders/checkout
      */
     @PostMapping("/checkout")
-    public ResponseEntity<?> checkout(
+    public ApiResponse<OrderResponse> checkout(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody(required = false) CheckoutRequest request) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.builder()
-                            .code(4001)
-                            .message("Vui lòng đăng nhập")
-                            .build());
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
@@ -288,26 +277,24 @@ public class OrderController {
 
             // Validate paymentMethod
             if (request.getPaymentMethod() == null || request.getPaymentMethod().trim().isEmpty()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.builder()
-                                .code(4003)
-                                .message("Vui lòng chọn phương thức thanh toán")
-                                .build());
+                return ApiResponse.<OrderResponse>builder()
+                        .code(4003)
+                        .message("Vui lòng chọn phương thức thanh toán")
+                        .build();
             }
 
             OrderResponse orderResponse = orderService.checkout(user.getId(), request);
 
-            return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
+            return ApiResponse.<OrderResponse>builder()
                     .code(1000)
                     .message("Đặt hàng thành công")
                     .result(orderResponse)
-                    .build());
+                    .build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder()
-                            .code(4005)
-                            .message(e.getMessage())
-                            .build());
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4005)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 
@@ -316,17 +303,16 @@ public class OrderController {
      * POST /api/orders/checkout/vnpay
      */
     @PostMapping("/checkout/vnpay")
-    public ResponseEntity<?> checkoutWithVNPay(
+    public ApiResponse<CreatePaymentResponse> checkoutWithVNPay(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CheckoutRequest request,
             HttpServletRequest httpServletRequest) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.builder()
-                            .code(4001)
-                            .message("Vui lòng đăng nhập")
-                            .build());
+            return ApiResponse.<CreatePaymentResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
@@ -352,18 +338,17 @@ public class OrderController {
                     httpServletRequest
             );
 
-            return ResponseEntity.ok(ApiResponse.<CreatePaymentResponse>builder()
+            return ApiResponse.<CreatePaymentResponse>builder()
                     .code(1000)
                     .message("Đã tạo đơn hàng và đường dẫn thanh toán VNPay thành công")
                     .result(paymentResponse)
-                    .build());
+                    .build();
 
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder()
-                            .code(4005)
-                            .message(e.getMessage())
-                            .build());
+            return ApiResponse.<CreatePaymentResponse>builder()
+                    .code(4005)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 
@@ -372,16 +357,15 @@ public class OrderController {
      * POST /api/orders/checkout/zalopay
      */
     @PostMapping("/checkout/zalopay")
-    public ResponseEntity<?> checkoutWithZaloPay(
+    public ApiResponse<CreatePaymentResponse> checkoutWithZaloPay(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CheckoutRequest request) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.builder()
-                            .code(4001)
-                            .message("Vui lòng đăng nhập")
-                            .build());
+            return ApiResponse.<CreatePaymentResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
@@ -404,18 +388,17 @@ public class OrderController {
             // 3. Tạo ZaloPay payment URL
             CreatePaymentResponse paymentResponse = zaloPayService.createOrderTransaction(paymentRequest);
 
-            return ResponseEntity.ok(ApiResponse.<CreatePaymentResponse>builder()
+            return ApiResponse.<CreatePaymentResponse>builder()
                     .code(1000)
                     .message("Đã tạo đơn hàng và đường dẫn thanh toán ZaloPay thành công")
                     .result(paymentResponse)
-                    .build());
+                    .build();
 
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder()
-                            .code(4005)
-                            .message(e.getMessage())
-                            .build());
+            return ApiResponse.<CreatePaymentResponse>builder()
+                    .code(4005)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 
@@ -425,16 +408,15 @@ public class OrderController {
      */
     @Transactional
     @PostMapping("/checkout/momo")
-    public ResponseEntity<?> checkoutWithMoMo(
+    public ApiResponse<CreatePaymentResponse> checkoutWithMoMo(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CheckoutRequest request) {
 
         if (jwt == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.builder()
-                            .code(4001)
-                            .message("Vui lòng đăng nhập")
-                            .build());
+            return ApiResponse.<CreatePaymentResponse>builder()
+                    .code(4001)
+                    .message("Vui lòng đăng nhập")
+                    .build();
         }
 
         try {
@@ -460,19 +442,18 @@ public class OrderController {
             // 3. Tạo MoMo payment URL
             CreatePaymentResponse paymentResponse = moMoService.createMoMoPayment(paymentRequest);
 
-            return ResponseEntity.ok(ApiResponse.<CreatePaymentResponse>builder()
+            return ApiResponse.<CreatePaymentResponse>builder()
                     .code(1000)
                     .message("Đã tạo đơn hàng và đường dẫn thanh toán MoMo thành công")
                     .result(paymentResponse)
-                    .build());
+                    .build();
 
         } catch (RuntimeException e) {
             log.error("Error in checkoutWithMoMo: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder()
-                            .code(4005)
-                            .message(e.getMessage())
-                            .build());
+            return ApiResponse.<CreatePaymentResponse>builder()
+                    .code(4005)
+                    .message(e.getMessage())
+                    .build();
         }
     }
 }
