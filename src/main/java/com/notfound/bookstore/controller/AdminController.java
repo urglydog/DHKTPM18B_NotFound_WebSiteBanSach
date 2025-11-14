@@ -21,6 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controller xử lý các chức năng quản trị cho hệ thống bookstore
+ * Bao gồm quản lý sách và thể loại sách
+ */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -29,6 +33,12 @@ public class AdminController {
 
     AdminService adminService;
 
+    /**
+     * Tạo mới một cuốn sách
+     *
+     * @param request Thông tin sách cần tạo
+     * @return Thông tin chi tiết của sách vừa được tạo
+     */
     @PostMapping("/books")
     public ApiResponse<BookFullDetailResponse> createBook(@Valid @RequestBody CreateBookRequest request) {
         BookFullDetailResponse response = adminService.createBook(request);
@@ -39,6 +49,13 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     * Cập nhật thông tin sách
+     *
+     * @param bookId ID của sách cần cập nhật
+     * @param request Thông tin cập nhật
+     * @return Thông tin chi tiết của sách sau khi cập nhật
+     */
     @PutMapping("/books/{bookId}")
     public ApiResponse<BookFullDetailResponse> updateBook(
             @PathVariable UUID bookId,
@@ -51,6 +68,12 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     * Xóa sách khỏi hệ thống
+     *
+     * @param bookId ID của sách cần xóa
+     * @return Kết quả xóa sách
+     */
     @DeleteMapping("/books/{bookId}")
     public ApiResponse<Void> deleteBook(@PathVariable UUID bookId) {
         adminService.deleteBook(bookId);
@@ -60,6 +83,9 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     *  DƯ VÌ LẤY THÔNG TIN SÁCH NẰM Ở BOOKCONTROLLER
+     */
     @GetMapping("/books/{bookId}")
     public ApiResponse<BookFullDetailResponse> getBookDetail(@PathVariable UUID bookId) {
         BookFullDetailResponse response = adminService.getBookDetail(bookId);
@@ -70,6 +96,9 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     *  DƯ VÌ LẤY TẤT CẢ CÁC SÁCH NẰM Ở BOOKCONTROLLER
+     */
     @GetMapping("/books")
     public ApiResponse<Page<BookFullDetailResponse>> getAllBooks(
             @RequestParam(defaultValue = "0") int page,
@@ -83,6 +112,13 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     * Upload nhiều ảnh cho một cuốn sách
+     *
+     * @param bookId ID của sách cần upload ảnh
+     * @param images Danh sách file ảnh cần upload
+     * @return Thông tin chi tiết của sách sau khi upload ảnh
+     */
     @PostMapping("/books/{bookId}/images")
     public ApiResponse<BookFullDetailResponse> uploadBookImages(
             @PathVariable UUID bookId,
@@ -95,6 +131,13 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     * Xóa một ảnh của sách
+     *
+     * @param bookId ID của sách
+     * @param imageId ID của ảnh cần xóa
+     * @return Kết quả xóa ảnh
+     */
     @DeleteMapping("/books/{bookId}/images/{imageId}")
     public ApiResponse<Void> deleteBookImage(
             @PathVariable UUID bookId,
@@ -106,6 +149,12 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     * Tạo mới thể loại sách
+     *
+     * @param request Thông tin thể loại cần tạo
+     * @return Thông tin thể loại vừa được tạo
+     */
     @PostMapping("/categories")
     public ApiResponse<CategoryResponse> createCategory(@Valid @RequestBody CreateCategoryRequest request) {
         CategoryResponse response = adminService.createCategory(request);
@@ -116,6 +165,13 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     * Cập nhật thông tin thể loại
+     *
+     * @param categoryId ID của thể loại cần cập nhật
+     * @param request Thông tin cập nhật
+     * @return Thông tin thể loại sau khi cập nhật
+     */
     @PutMapping("/categories/{categoryId}")
     public ApiResponse<CategoryResponse> updateCategory(
             @PathVariable UUID categoryId,
@@ -128,6 +184,12 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     * Xóa thể loại khỏi hệ thống
+     *
+     * @param categoryId ID của thể loại cần xóa
+     * @return Kết quả xóa thể loại
+     */
     @DeleteMapping("/categories/{categoryId}")
     public ApiResponse<Void> deleteCategory(@PathVariable UUID categoryId) {
         adminService.deleteCategory(categoryId);
@@ -137,6 +199,9 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     *  DƯ VÌ LẤY THÔNG TIN CATEGORIES NẰM Ở CATEGORYCONTROLLER
+     */
     @GetMapping("/categories/{categoryId}")
     public ApiResponse<CategoryResponse> getCategory(@PathVariable UUID categoryId) {
         CategoryResponse response = adminService.getCategory(categoryId);
@@ -147,6 +212,9 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     *  DƯ VÌ LẤY THÔNG TIN CATEGORIES NẰM Ở CATEGORYCONTROLLER
+     */
     @GetMapping("/categories")
     public ApiResponse<List<CategoryResponse>> getAllCategories() {
         List<CategoryResponse> response = adminService.getAllCategories();
@@ -157,6 +225,9 @@ public class AdminController {
                 .build();
     }
 
+    /**
+     *  DƯ VÌ LẤY THÔNG TIN CATEGORIES NẰM Ở CATEGORYCONTROLLER
+     */
     @GetMapping("/categories/paged")
     public ApiResponse<Page<CategoryResponse>> getAllCategoriesPaged(
             @RequestParam(defaultValue = "0") int page,
