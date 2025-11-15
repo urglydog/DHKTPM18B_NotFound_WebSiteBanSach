@@ -1,5 +1,7 @@
 package com.notfound.bookstore.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -30,6 +32,7 @@ public class Wishlist {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonBackReference
     User user;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -38,6 +41,7 @@ public class Wishlist {
         joinColumns = @JoinColumn(name = "wishlist_id"),
         inverseJoinColumns = @JoinColumn(name = "book_id")
     )
+    @JsonManagedReference
     List<Book> books;
 
     public Wishlist(User user) {

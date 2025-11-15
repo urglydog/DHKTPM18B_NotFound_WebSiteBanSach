@@ -1,20 +1,27 @@
 package com.notfound.bookstore.model.dto.response.cartresponse;
 
-import com.notfound.bookstore.model.dto.response.bookresponse.BookResponse;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
-import java.math.BigDecimal;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.UUID;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder
 public class CartItemResponse {
-    UUID id;
-    BookResponse book;
-    Integer quantity;
-    BigDecimal price;
-    BigDecimal subtotal;
+
+    private UUID itemId;
+    private UUID bookId;
+    private String bookTitle;
+    private String bookIsbn;
+    private Double bookPrice;
+    private Double bookDiscountPrice;
+    private String bookImageUrl;
+    private Integer quantity;
+    private Double subTotal;
+    private Integer stockQuantity;
 }
+

@@ -26,24 +26,44 @@ public class SecurityConfig {
         @Autowired
         private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-        private final String[] PUBLIC_ENDPOINTS = {
-                        "/api/public/**",
-                        "/api/auth/**",
-                        "/api/auth/register",
-                        "/api/auth/introspect",
-                        "/api/review/book/{bookId}",
-                        "/api/auth/introspect",
-                        "/api/books/**",
-                        "/api/authors/**",
-                        "/api/news/**",
-                        "/api/payment/vnpay/callback",
-                        "/api/payment/zalopay/callback",
-                        "/api/payment/zalopay/return",
-                        "/api/promotions/active",
-                        "/api/promotions/book/**",
-                        "/api/promotions/validate",
-                        "/api/categories/**",
-        };
+    private final String[] PUBLIC_ENDPOINTS = {
+            "/api/public/**",
+
+            // Auth
+            "/api/auth/**",
+            "/api/auth/register",
+            "/api/auth/login",
+            "/api/auth/send-otp",
+            "/api/auth/verify-otp",
+            "/api/auth/verify-email",
+            "/api/auth/confirm-email",
+            "/api/auth/google/callback",
+            "/api/auth/introspect",
+
+            // Books – Categories – Authors
+            "/api/books/**",
+            "/api/categories/**",
+            "/api/authors/**",
+
+            // News
+            "/api/news/**",
+
+            // Review
+            "/api/review/book/{bookId}",
+
+            // Payment
+            "/api/payment/vnpay/callback",
+            "/api/payment/zalopay/callback",
+            "/api/payment/zalopay/return",
+
+            // Promotions
+            "/api/promotions/active",
+            "/api/promotions/book/**",
+            "/api/promotions/validate",
+
+            // OAuth2
+            "/oauth2/**",
+    };
 
         @Value("${jwt.signerKey}")
         private String signerKey;

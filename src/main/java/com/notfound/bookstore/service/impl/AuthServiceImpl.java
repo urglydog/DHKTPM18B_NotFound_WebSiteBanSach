@@ -7,6 +7,7 @@ import com.notfound.bookstore.exception.AppException;
 import com.notfound.bookstore.exception.ErrorCode;
 import com.notfound.bookstore.model.dto.request.userrequest.LoginRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.RegisterRequest;
+import com.notfound.bookstore.model.dto.request.userrequest.ChangePasswordRequest;
 import com.notfound.bookstore.model.dto.response.userresponse.AuthResponse;
 import com.notfound.bookstore.model.dto.response.userresponse.UserResponse;
 import com.notfound.bookstore.model.entity.User;
@@ -247,6 +248,23 @@ public class AuthServiceImpl implements AuthService {
                 .refreshToken(refreshToken)
                 .user(userResponse)
                 .build();
+    }
+
+    @Override
+    public void changePassword(String username, ChangePasswordRequest request) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
+        if (!request.getNewPassword().equals(request.getConfimPassword())) {
+            throw new AppException(ErrorCode.INVALID_ARGUMENTS);
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     private String exchangeCodeForToken(String code) {
