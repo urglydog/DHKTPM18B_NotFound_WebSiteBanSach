@@ -69,7 +69,11 @@ public enum ErrorCode {
     PROMOTION_INACTIVE(HttpStatus.BAD_REQUEST, 4007, "Khuyến mãi đang không hoạt động."),
 
     // ==== Lỗi hệ thống không phân loại ====
-    UNCATEGORIZED_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 9999, "Uncategorized error");
+    UNCATEGORIZED_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 9999, "Uncategorized error"),
+
+    // ==== Lỗi Tin tức ====
+    NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, 6001, "News not found.");
+
 
     private final HttpStatus httpStatus;
     private final int code;
@@ -80,4 +84,6 @@ public enum ErrorCode {
         this.code = code;
         this.message = message;
     }
+
+
 }

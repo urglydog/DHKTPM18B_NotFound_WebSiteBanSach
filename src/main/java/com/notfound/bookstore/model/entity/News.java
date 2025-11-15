@@ -8,6 +8,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,7 +18,8 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = "author")
+@Builder
+@ToString(exclude = {"author", "images"})
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class News {
 
@@ -28,8 +30,16 @@ public class News {
     @Column(nullable = false)
     String title;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    String content;
+//    @Column(columnDefinition = "TEXT", nullable = false)
+//    String content;
+
+    // THAY ĐỔI: Lưu HTML content
+    @Column(columnDefinition = "LONGTEXT", nullable = false)
+    String content; // HTML content
+
+    // MỚI: Lưu metadata dạng JSON (cho Table of Contents, SEO...)
+    @Column(columnDefinition = "TEXT")
+    String metadata; // JSON string: {sections: [...], description: "..."}
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -48,7 +58,7 @@ public class News {
     User author;
 
     @OneToMany(mappedBy = "news", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-    List<NewsImage> images;
+    List<NewsImage> images = new ArrayList<>();
 
     public enum Status {
         DRAFT, PUBLISHED, ARCHIVED

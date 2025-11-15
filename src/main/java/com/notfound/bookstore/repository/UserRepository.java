@@ -33,4 +33,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END FROM Order o WHERE o.customer.id = :userId")
     boolean hasOrders(@Param("userId") UUID userId);
 
+    // ✅ THÊM MỚI: Lấy UUID từ username (cho News)
+    @Query("SELECT u.id FROM User u WHERE u.username = :username")
+    Optional<UUID> findIdByUsername(@Param("username") String username);
 }

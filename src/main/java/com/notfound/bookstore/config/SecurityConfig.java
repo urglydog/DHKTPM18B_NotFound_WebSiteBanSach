@@ -35,6 +35,7 @@ public class SecurityConfig {
                         "/api/auth/introspect",
                         "/api/books/**",
                         "/api/authors/**",
+                        "/api/news/**",
                         "/api/payment/vnpay/callback",
                         "/api/payment/zalopay/callback",
                         "/api/payment/zalopay/return",
