@@ -56,16 +56,6 @@ public class PaymentController {
                 .build();
     }
 
-    @GetMapping("/vnpay/callback")
-    public ApiResponse<PaymentResponse> handleVNPayReturn(VNPayCallbackRequest vnpParams) {
-        PaymentResponse paymentResponse = vnPayService.handleVNPayReturn(vnpParams);
-        return ApiResponse.<PaymentResponse>builder()
-                .code(200)
-                .result(paymentResponse)
-                .message("Thanh toán thành công")
-                .build();
-    }
-
     /**
      * Tạo đơn hàng thanh toán ZaloPay
      * Khởi tạo giao dịch và trả về URL để redirect người dùng đến trang thanh toán ZaloPay
