@@ -8,8 +8,7 @@ import com.notfound.bookstore.model.dto.response.bookresponse.PageResponse;
 import com.notfound.bookstore.service.AuthorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -46,9 +45,9 @@ public class AuthorController {
                 .build();
     }
 
-    @PostMapping("/search")
+    @GetMapping("/search")
     public ApiResponse<PageResponse<AuthorSummaryResponse>> searchByName(
-            @RequestBody AuthorSearchRequest request) {
+            @Valid @ModelAttribute AuthorSearchRequest request) {
         return ApiResponse.<PageResponse<AuthorSummaryResponse>>builder()
                 .code(1000)
                 .message("Tìm kiếm tác giả thành công")
@@ -56,9 +55,9 @@ public class AuthorController {
                 .build();
     }
 
-    @PostMapping("/filter")
+    @GetMapping("/filter")
     public ApiResponse<PageResponse<AuthorSummaryResponse>> filterAuthors(
-            @RequestBody AuthorFilterRequest request) {
+            @Valid @ModelAttribute AuthorFilterRequest request) {
         return ApiResponse.<PageResponse<AuthorSummaryResponse>>builder()
                 .code(1000)
                 .message("Lọc tác giả thành công")
@@ -75,6 +74,7 @@ public class AuthorController {
                 .build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ApiResponse<AuthorResponse> createAuthor(@Valid @RequestBody AuthorRequest request) {
         return ApiResponse.<AuthorResponse>builder()
@@ -84,6 +84,7 @@ public class AuthorController {
                 .build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ApiResponse<AuthorResponse> updateAuthor(
             @PathVariable UUID id,
