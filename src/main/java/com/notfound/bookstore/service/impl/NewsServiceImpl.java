@@ -11,8 +11,10 @@ import com.notfound.bookstore.model.dto.response.newsresponse.NewsResponse;
 import com.notfound.bookstore.model.entity.News;
 import com.notfound.bookstore.model.entity.NewsImage;
 import com.notfound.bookstore.model.entity.User;
+import com.notfound.bookstore.repository.NewsImageRepository;
 import com.notfound.bookstore.repository.NewsRepository;
 import com.notfound.bookstore.repository.UserRepository;
+import com.notfound.bookstore.service.ImageService;
 import com.notfound.bookstore.service.NewsService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +28,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -47,6 +51,8 @@ public class NewsServiceImpl implements NewsService {
 
     NewsRepository newsRepository;
     UserRepository userRepository;
+    NewsImageRepository newsImageRepository;
+    ImageService imageService;
     ObjectMapper objectMapper;
 
     @Override
@@ -77,8 +83,6 @@ public class NewsServiceImpl implements NewsService {
                     .map(imgReq -> {
                         NewsImage newsImage = NewsImage.builder()
                                 .url(imgReq.getUrl())
-                                .alt(imgReq.getAlt())
-                                .caption(imgReq.getCaption())
                                 .news(news)
                                 .build();
                         // Set priority (kế thừa từ BaseImage)
@@ -121,8 +125,6 @@ public class NewsServiceImpl implements NewsService {
                     .map(imgReq -> {
                         NewsImage newsImage = NewsImage.builder()
                                 .url(imgReq.getUrl())
-                                .alt(imgReq.getAlt())
-                                .caption(imgReq.getCaption())
                                 .news(news)
                                 .build();
                         newsImage.setPriority(imgReq.getPriority() != null ? imgReq.getPriority() : 1);
@@ -299,9 +301,8 @@ public class NewsServiceImpl implements NewsService {
                 .map(img -> NewsImageResponse.builder()
                         .id(img.getId())
                         .url(img.getUrl())
-                        .alt(img.getAlt())
-                        .caption(img.getCaption())
                         .priority(img.getPriority())
+                        .uploadedAt(img.getUploadedAt())
                         .build())
                 .collect(Collectors.toList());
 
@@ -317,5 +318,75 @@ public class NewsServiceImpl implements NewsService {
                 .authorId(news.getAuthor().getId())
                 .images(imageResponses)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public NewsResponse uploadNewsImages(UUID newsId, List<MultipartFile> images) {
+        // Tìm news
+        News news = newsRepository.findById(newsId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        if (images == null || images.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST);
+        }
+
+        // Upload images lên Cloudinary với folder "bookstore/news"
+        List<Map<String, Object>> uploadResults = imageService.uploadMultipleImages(images, "bookstore/news");
+
+        // Tính priority cho ảnh mới
+        int priority = 1;
+        List<NewsImage> existingImages = newsImageRepository.findByNewsNewsID(newsId);
+        if (!existingImages.isEmpty()) {
+            priority = existingImages.stream()
+                    .mapToInt(img -> img.getPriority() != null ? img.getPriority() : 0)
+                    .max()
+                    .orElse(0) + 1;
+        }
+
+        // Lưu thông tin ảnh vào database
+        for (Map<String, Object> result : uploadResults) {
+            String imageUrl = (String) result.get("url");
+            NewsImage newsImage = NewsImage.builder()
+                    .news(news)
+                    .url(imageUrl)
+                    .priority(priority++)
+                    .build();
+            newsImageRepository.save(newsImage);
+        }
+
+        log.info("Uploaded {} images for news: {}", uploadResults.size(), newsId);
+
+        // Trả về news đã cập nhật
+        News updatedNews = newsRepository.findById(newsId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+        return mapToResponse(updatedNews);
+    }
+
+    @Override
+    @Transactional
+    public void deleteNewsImage(UUID newsId, Long imageId) {
+        // Kiểm tra news có tồn tại không
+        if (!newsRepository.existsById(newsId)) {
+            throw new AppException(ErrorCode.NOT_FOUND);
+        }
+
+        // Tìm image
+        NewsImage image = newsImageRepository.findById(imageId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        // Kiểm tra image có thuộc về news này không
+        if (!image.getNews().getNewsID().equals(newsId)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+
+        // Xóa ảnh trên Cloudinary
+        if (image.getUrl() != null) {
+            imageService.deleteImage(image.getUrl());
+        }
+
+        // Xóa record trong database
+        newsImageRepository.delete(image);
+        log.info("Deleted image {} for news: {}", imageId, newsId);
     }
 }

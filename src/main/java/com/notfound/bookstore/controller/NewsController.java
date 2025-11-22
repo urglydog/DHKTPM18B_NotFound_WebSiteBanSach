@@ -19,7 +19,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -253,6 +255,37 @@ public class NewsController {
                 .code(1000)
                 .message("Lấy thống kê tin tức thành công")
                 .result(stats)
+                .build();
+    }
+
+    /**
+     * 📷 POST /api/news/{newsId}/images - Upload nhiều ảnh cho news
+     * Requires authentication - Admin/Author only
+     */
+    @PostMapping("/{newsId}/images")
+    public ApiResponse<NewsResponse> uploadNewsImages(
+            @PathVariable UUID newsId,
+            @RequestParam("images") List<MultipartFile> images) {
+        NewsResponse news = newsService.uploadNewsImages(newsId, images);
+        return ApiResponse.<NewsResponse>builder()
+                .code(1000)
+                .message("Upload ảnh cho tin tức thành công")
+                .result(news)
+                .build();
+    }
+
+    /**
+     * 🗑️ DELETE /api/news/{newsId}/images/{imageId} - Xóa một ảnh của news
+     * Requires authentication - Admin/Author only
+     */
+    @DeleteMapping("/{newsId}/images/{imageId}")
+    public ApiResponse<Void> deleteNewsImage(
+            @PathVariable UUID newsId,
+            @PathVariable Long imageId) {
+        newsService.deleteNewsImage(newsId, imageId);
+        return ApiResponse.<Void>builder()
+                .code(1000)
+                .message("Xóa ảnh tin tức thành công")
                 .build();
     }
 

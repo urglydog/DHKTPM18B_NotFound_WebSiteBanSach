@@ -5,7 +5,9 @@ import com.notfound.bookstore.model.dto.response.newsresponse.NewsResponse;
 import com.notfound.bookstore.model.entity.News;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -96,6 +98,21 @@ public interface NewsService {
          * @return long
          */
         long countByStatus(News.Status status);
+
+        /**
+         * Upload nhiều ảnh cho news
+         * @param newsId - ID của news cần upload ảnh
+         * @param images - Danh sách file ảnh cần upload
+         * @return NewsResponse với thông tin đã cập nhật
+         */
+        NewsResponse uploadNewsImages(UUID newsId, List<MultipartFile> images);
+
+        /**
+         * Xóa một ảnh của news
+         * @param newsId - ID của news
+         * @param imageId - ID của ảnh cần xóa
+         */
+        void deleteNewsImage(UUID newsId, Long imageId);
 
 }
 

@@ -16,9 +16,8 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class NewsImageResponse {
-    Long id;      // ✅ Đổi từ UUID sang Long (vì BaseImage dùng Long)
+    Long id;
     String url;
-    String alt;
-    String caption;
-    Integer priority; // ✅ Dùng priority
+    Integer priority;
+    java.time.LocalDateTime uploadedAt;  // ✅ Thêm uploadedAt như BookImage
 }
