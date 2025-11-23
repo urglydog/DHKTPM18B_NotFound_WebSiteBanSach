@@ -8,6 +8,7 @@ import com.notfound.bookstore.model.dto.request.newsrequest.CreateNewsRequest;
 import com.notfound.bookstore.model.dto.response.newsresponse.NewsImageResponse;
 import com.notfound.bookstore.model.dto.response.newsresponse.NewsMetadata;
 import com.notfound.bookstore.model.dto.response.newsresponse.NewsResponse;
+import com.notfound.bookstore.model.dto.response.newsresponse.ProcessedNewsContent;
 import com.notfound.bookstore.model.entity.News;
 import com.notfound.bookstore.model.entity.NewsImage;
 import com.notfound.bookstore.model.entity.User;
@@ -65,13 +66,13 @@ public class NewsServiceImpl implements NewsService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         // Tự động generate metadata từ HTML content
-        String metadata = generateMetadata(request.getContent());
+        ProcessedNewsContent processed = processContent(request.getContent());
 
         // Tạo News entity
         News news = News.builder()
                 .title(request.getTitle())
-                .content(request.getContent())
-                .metadata(metadata)
+                .content(processed.getHtmlContent()) // <-- LƯU HTML ĐÃ CÓ ID
+                .metadata(processed.getMetadataJson()) // <-- LƯU METADATA KHỚP HTML
                 .status(News.Status.DRAFT)
                 .author(author)
                 .images(new ArrayList<>())
@@ -112,8 +113,10 @@ public class NewsServiceImpl implements NewsService {
         news.setContent(request.getContent());
 
         // Tự động generate lại metadata
-        String metadata = generateMetadata(request.getContent());
-        news.setMetadata(metadata);
+        ProcessedNewsContent processed = processContent(request.getContent());
+
+        news.setContent(processed.getHtmlContent()); // Cập nhật nội dung mới có ID
+        news.setMetadata(processed.getMetadataJson());
 
         // Cập nhật images
         if (request.getImages() != null) {
@@ -210,7 +213,7 @@ public class NewsServiceImpl implements NewsService {
     /**
      * ✅ QUAN TRỌNG: Tự động generate metadata từ HTML content
      */
-    private String generateMetadata(String htmlContent) {
+    private ProcessedNewsContent processContent(String htmlContent) {
         try {
             Document doc = Jsoup.parse(htmlContent);
 
@@ -221,8 +224,10 @@ public class NewsServiceImpl implements NewsService {
             int sectionIndex = 1;
             for (Element heading : headings) {
                 String id = heading.attr("id");
+                // Nếu chưa có ID thì tạo mới VÀ GÁN VÀO THẺ HTML
                 if (id == null || id.isEmpty()) {
                     id = "section-" + sectionIndex++;
+                    heading.attr("id", id); // <--- QUAN TRỌNG NHẤT: Sửa HTML
                 }
 
                 String tagName = heading.tagName();
@@ -276,11 +281,12 @@ public class NewsServiceImpl implements NewsService {
                     .links(links)
                     .build();
 
-            return objectMapper.writeValueAsString(metadata);
+            // Trả về HTML đã sửa (body) và JSON Metadata
+            return new ProcessedNewsContent(doc.body().html(), objectMapper.writeValueAsString(metadata));
 
         } catch (JsonProcessingException e) {
             log.error("Error generating metadata", e);
-            return "{}";
+            return new ProcessedNewsContent(htmlContent, "{}");
         }
     }
 
