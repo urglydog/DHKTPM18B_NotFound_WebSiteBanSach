@@ -51,6 +51,9 @@ public class User {
     @Column(nullable = false)
     Role role;
 
+    @Column(length = 20)
+    String status; // active, inactive, banned
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<Address> addresses;
 
