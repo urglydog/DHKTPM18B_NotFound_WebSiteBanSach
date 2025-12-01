@@ -24,4 +24,3 @@ public class CartItemResponse {
     private Double subTotal;
     private Integer stockQuantity;
 }
-

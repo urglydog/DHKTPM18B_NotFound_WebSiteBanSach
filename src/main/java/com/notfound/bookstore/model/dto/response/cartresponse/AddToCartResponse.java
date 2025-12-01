@@ -13,4 +13,3 @@ public class AddToCartResponse {
     private CartItemResponse cartItem;
     private Long cartItemCount;
 }
-

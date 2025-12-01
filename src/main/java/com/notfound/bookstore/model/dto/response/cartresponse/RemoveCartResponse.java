@@ -13,4 +13,3 @@ public class RemoveCartResponse {
     private Long cartItemCount;
     private Double totalPrice;
 }
-

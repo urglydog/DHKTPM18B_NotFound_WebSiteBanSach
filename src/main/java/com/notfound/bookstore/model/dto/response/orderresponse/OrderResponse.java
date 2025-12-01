@@ -22,6 +22,8 @@ public class OrderResponse {
     BigDecimal subtotal;
     BigDecimal total;
     String paymentMethod;
+    BigDecimal taxAmount;
+    BigDecimal shippingFee;
 
     // Thông tin khuyến mãi
     String promotionCode;
@@ -29,6 +31,15 @@ public class OrderResponse {
     Double discountPercent;
     BigDecimal discountAmount;
 
+    // Thông tin khách hàng
+    UUID customerId;
+    String customerName;
+    String customerEmail;
+    String customerPhone;
+    String customerMembershipTier;
+
     List<OrderItemResponse> items;
     AddressResponse shippingAddress;
+
+    String note;
 }

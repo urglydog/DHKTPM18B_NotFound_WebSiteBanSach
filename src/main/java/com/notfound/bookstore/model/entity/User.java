@@ -5,8 +5,12 @@ import com.notfound.bookstore.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,7 +23,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@ToString(exclude = {"addresses", "reviews", "cart", "orders", "wishlist", "newsArticles"})
+@ToString(exclude = {"addresses", "reviews", "cart", "orders", "wishlist", "newsArticles", "notifications"})
 public class User {
 
     @Id
@@ -54,6 +58,41 @@ public class User {
     @Column(length = 20)
     String status; // active, inactive, banned
 
+    // 1. Audit (Cực kỳ quan trọng)
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6)")
+    LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)")
+    LocalDateTime updatedAt;
+
+    @Column(name = "last_login")
+    LocalDateTime lastLogin;
+
+    // 2. Loyalty (Khách hàng thân thiết)
+    @Column(name = "points", nullable = false)
+    Integer points = 0; // Điểm tích lũy
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "membership_tier")
+    MembershipTier membershipTier = MembershipTier.BRONZE;
+
+    // 3. Marketing & Profile
+    @Column(name = "date_of_birth")
+    LocalDate dateOfBirth; // Để tặng quà sinh nhật
+
+    @Column(name = "is_email_verified")
+    Boolean isEmailVerified = false;
+
+    // 4. Social Login (Nếu muốn mở rộng sau này)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider")
+    AuthProvider authProvider = AuthProvider.LOCAL;
+
+    @Column(name = "provider_id")
+    String providerId; // ID của Google/Facebook trả về
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<Address> addresses;
 
@@ -72,6 +111,19 @@ public class User {
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<News> newsArticles;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    List<Notification> notifications;
+
+    // Enum định nghĩa hạng thành viên
+    public enum MembershipTier {
+        BRONZE, SILVER, GOLD, PLATINUM
+    }
+
+    // Enum định nghĩa nguồn đăng nhập
+    public enum AuthProvider {
+        LOCAL, GOOGLE, FACEBOOK
+    }
 
     public User(String username, String password, String email, Role role, String avatar_url) {
         this.username = username;
