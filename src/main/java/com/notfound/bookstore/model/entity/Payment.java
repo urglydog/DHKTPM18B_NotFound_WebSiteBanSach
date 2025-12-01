@@ -41,6 +41,12 @@ public class Payment {
 
     String transactionId;
 
+    @Column(name = "transaction_fee")
+    Double transactionFee;
+
+    @Column(name = "net_amount")
+    Double netAmount; // Số tiền thực nhận sau khi trừ phí
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     Order order;

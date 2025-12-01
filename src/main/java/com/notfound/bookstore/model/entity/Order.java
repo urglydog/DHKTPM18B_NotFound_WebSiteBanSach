@@ -59,4 +59,16 @@ public class Order {
     @Column(name = "discount_amount")
     Double discountAmount; // Số tiền được giảm từ promotion
 
+    @Column(name = "shipping_fee")
+    Double shippingFee;
+
+    @Embedded
+    ShippingDetails shippingDetails;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    List<ReturnRequest> returnRequests;
+
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    Shipment shipment;
+
 }

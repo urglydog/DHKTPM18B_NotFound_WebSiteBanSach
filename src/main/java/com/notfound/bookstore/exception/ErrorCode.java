@@ -72,7 +72,12 @@ public enum ErrorCode {
     UNCATEGORIZED_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 9999, "Uncategorized error"),
 
     // ==== Lỗi Tin tức ====
-    NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, 6001, "News not found.");
+    NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, 6001, "News not found."),
+
+    // ==== Lỗi Quản lý Người dùng ====
+    USER_HAS_ORDERS(HttpStatus.CONFLICT, 2010, "Cannot delete user with existing orders."),
+    CANNOT_DELETE_ADMIN(HttpStatus.FORBIDDEN, 2011, "Cannot delete admin user."),
+    CANNOT_BAN_ADMIN(HttpStatus.FORBIDDEN, 2012, "Cannot ban admin user.");
 
 
     private final HttpStatus httpStatus;

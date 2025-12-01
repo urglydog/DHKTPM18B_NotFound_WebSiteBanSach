@@ -40,6 +40,9 @@ public class Book {
     @Column(name = "discount_price")
     Double discountPrice;
 
+    @Column(name = "import_price")
+    Double importPrice;
+
     @Column(name = "stock_quantity", nullable = false)
     Integer stockQuantity;
 
@@ -60,6 +63,12 @@ public class Book {
     @UpdateTimestamp
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
+
+    @Column(name = "created_by")
+    String createdBy; // Username của admin tạo sách
+
+    @Column(name = "updated_by")
+    String updatedBy; // Username của admin cập nhật cuối cùng
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
