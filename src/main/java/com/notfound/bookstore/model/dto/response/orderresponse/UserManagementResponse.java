@@ -16,8 +16,14 @@ public class UserManagementResponse {
     UUID id;
     String username;
     String email;
+    String fullName;
+    String phoneNumber;
     String role;
+    String status;
     LocalDateTime createdAt;
+    LocalDateTime lastLogin;
+    Integer points;
+    String membershipTier;
     Integer totalOrders;
     BigDecimal totalSpent;
 }

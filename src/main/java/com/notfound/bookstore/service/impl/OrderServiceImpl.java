@@ -33,6 +33,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepository userRepository;
     private final PromotionRepository promotionRepository;
     private final PromotionService promotionService;
+    private final AddressRepository addressRepository;
 
     @Override
     @Transactional
@@ -83,22 +84,31 @@ public class OrderServiceImpl implements OrderService {
                     LocalDate.now()
             ).orElseThrow(() -> new RuntimeException("Mã khuyến mãi không hợp lệ hoặc đã hết hạn"));
 
-            // Kiểm tra usage limit
-            if (!promotion.isValid()) {
-                throw new RuntimeException("Mã khuyến mãi đã hết lượt sử dụng");
+            // Kiểm tra điều kiện đơn hàng tối thiểu và tính discount
+            if (!promotion.isValid(subtotal)) {
+                if (subtotal < promotion.getMinOrderValue()) {
+                    throw new RuntimeException(String.format(
+                            "Đơn hàng phải đạt tối thiểu %.0f₫ để áp dụng mã này. Hiện tại: %.0f₫",
+                            promotion.getMinOrderValue(), subtotal));
+                }
+                throw new RuntimeException("Mã khuyến mãi không hợp lệ");
             }
 
-            // Tính discount
-            discountAmount = subtotal * (promotion.getDiscountPercent() / 100.0);
+            // Tính discount amount dựa trên discount type
+            discountAmount = promotion.calculateDiscountAmount(subtotal);
 
             // Áp dụng mã (tăng usage count)
             promotionService.applyPromotionCode(promotion.getPromotionID());
         }
 
-        // 5. Tính tổng tiền sau giảm giá
-        Double totalAmount = subtotal - discountAmount;
+        // 5. Tính thuế và phí ship (có thể tùy chỉnh)
+        Double taxAmount = 0.0;
+        Double shippingFee = 30000.0; // Phí ship cố định hoặc tính theo logic
 
-        // 6. Tạo đơn hàng
+        // 6. Tính tổng tiền sau giảm giá
+        Double totalAmount = subtotal - discountAmount + taxAmount + shippingFee;
+
+        // 7. Tạo đơn hàng
         Order order = new Order();
         order.setCustomer(user);
         order.setStatus(OrderStatus.PENDING);
@@ -106,12 +116,35 @@ public class OrderServiceImpl implements OrderService {
         order.setPaymentMethod(request.getPaymentMethod());
         order.setPromotion(promotion);
         order.setDiscountAmount(discountAmount);
-        order.setTaxAmount(0.0); // Có thể tính thuế nếu cần
+        order.setTaxAmount(taxAmount);
+        order.setShippingFee(shippingFee);
         order.setOrderDate(LocalDateTime.now());
+
+        // 7.1. Set shipping details nếu có addressId
+        if (request.getAddressId() != null) {
+            Address address = addressRepository.findById(request.getAddressId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy địa chỉ"));
+
+            ShippingDetails shippingDetails = new ShippingDetails();
+            shippingDetails.setRecipientName(address.getRecipientName());
+            shippingDetails.setPhoneNumber(address.getPhoneNumber());
+            // Ghép địa chỉ đầy đủ: street, ward, district, province
+            String fullAddress = String.format("%s, %s, %s, %s",
+                    address.getStreet(),
+                    address.getWard(),
+                    address.getDistrict(),
+                    address.getProvince());
+            shippingDetails.setFullAddress(fullAddress);
+            shippingDetails.setWard(address.getWard());
+            shippingDetails.setDistrict(address.getDistrict());
+            shippingDetails.setProvince(address.getProvince());
+
+            order.setShippingDetails(shippingDetails);
+        }
 
         order = orderRepository.save(order);
 
-        // 7. Tạo order items từ cart items
+        // 8. Tạo order items từ cart items
         Order finalOrder = order;
         List<OrderItem> orderItems = cartItems.stream()
                 .map(cartItem -> {
@@ -131,7 +164,7 @@ public class OrderServiceImpl implements OrderService {
                     orderItem.setOrder(finalOrder);
                     orderItem.setBook(book);
                     orderItem.setQuantity(cartItem.getQuantity());
-                    orderItem.setUnitPrice(book.getPrice()); // Sửa: Lấy giá từ book
+                    orderItem.setUnitPrice(book.getPrice());
                     orderItem.setSubtotal(cartItem.getSubTotal());
 
                     return orderItem;
@@ -140,7 +173,7 @@ public class OrderServiceImpl implements OrderService {
 
         orderItemRepository.saveAll(orderItems);
 
-        // 8. Xóa các sản phẩm đã checkout khỏi giỏ hàng
+        // 9. Xóa các sản phẩm đã checkout khỏi giỏ hàng
         if (request.getBookIds() != null && !request.getBookIds().isEmpty()) {
             // Xóa chỉ các sản phẩm đã checkout
             for (UUID bookId : request.getBookIds()) {
@@ -151,7 +184,7 @@ public class OrderServiceImpl implements OrderService {
             cartService.clearCart(userId);
         }
 
-        // 9. Tạo response
+        // 10. Tạo response
         return buildOrderResponse(order, orderItems, promotion, discountAmount, subtotal);
     }
 
@@ -185,8 +218,13 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Page<OrderResponse> getOrdersByUserId(UUID userId, Pageable pageable) {
-        // Cần implement với Page - tạm thời throw exception
-        throw new UnsupportedOperationException("Chưa implement pagination cho user orders");
+        Page<Order> orders = orderRepository.findByCustomerId(userId, pageable);
+        return orders.map(order -> {
+            List<OrderItem> orderItems = orderItemRepository.findByOrderOrderID(order.getOrderID());
+            Double subtotal = orderItems.stream().mapToDouble(OrderItem::getSubtotal).sum();
+            return buildOrderResponse(order, orderItems, order.getPromotion(),
+                    order.getDiscountAmount(), subtotal);
+        });
     }
 
     @Override
@@ -278,15 +316,23 @@ public class OrderServiceImpl implements OrderService {
     private OrderResponse buildOrderResponse(Order order, List<OrderItem> orderItems,
                                              Promotion promotion, Double discountAmount,
                                              Double subtotal) {
+        // Map order items to response
         List<OrderItemResponse> itemResponses = orderItems.stream()
                 .map(item -> OrderItemResponse.builder()
                         .id(item.getOrderItemID())
+                        .bookId(item.getBook().getId())
                         .bookTitle(item.getBook().getTitle())
+                        .bookIsbn(item.getBook().getIsbn())
+                        .bookImageUrl(item.getBook().getImages() != null && !item.getBook().getImages().isEmpty()
+                                ? item.getBook().getImages().get(0).getUrl()
+                                : null)
                         .quantity(item.getQuantity())
-                        .price(BigDecimal.valueOf(item.getUnitPrice()))
+                        .unitPrice(BigDecimal.valueOf(item.getUnitPrice()))
+                        .subtotal(BigDecimal.valueOf(item.getSubtotal()))
                         .build())
                 .collect(Collectors.toList());
 
+        // Build order response với thông tin đầy đủ
         OrderResponse.OrderResponseBuilder builder = OrderResponse.builder()
                 .id(order.getOrderID())
                 .orderCode("ORD-" + order.getOrderID().toString().substring(0, 8).toUpperCase())
@@ -295,7 +341,19 @@ public class OrderServiceImpl implements OrderService {
                 .subtotal(BigDecimal.valueOf(subtotal))
                 .total(BigDecimal.valueOf(order.getTotalAmount()))
                 .paymentMethod(order.getPaymentMethod())
-                .items(itemResponses);
+                .taxAmount(order.getTaxAmount() != null ? BigDecimal.valueOf(order.getTaxAmount()) : BigDecimal.ZERO)
+                .shippingFee(order.getShippingFee() != null ? BigDecimal.valueOf(order.getShippingFee()) : BigDecimal.ZERO)
+                .items(itemResponses)
+                // Thông tin khách hàng từ User entity mới
+                .customerId(order.getCustomer().getId())
+                .customerName(order.getCustomer().getFullName() != null
+                        ? order.getCustomer().getFullName()
+                        : order.getCustomer().getUsername())
+                .customerEmail(order.getCustomer().getEmail())
+                .customerPhone(order.getCustomer().getPhoneNumber())
+                .customerMembershipTier(order.getCustomer().getMembershipTier() != null
+                        ? order.getCustomer().getMembershipTier().name()
+                        : "BRONZE");
 
         // Thêm thông tin khuyến mãi nếu có
         if (promotion != null) {

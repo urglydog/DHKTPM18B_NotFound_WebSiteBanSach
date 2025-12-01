@@ -13,7 +13,11 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderItemResponse {
     UUID id;
+    UUID bookId;
     String bookTitle;
+    String bookIsbn;
+    String bookImageUrl;
     Integer quantity;
-    BigDecimal price;
+    BigDecimal unitPrice;
+    BigDecimal subtotal;
 }

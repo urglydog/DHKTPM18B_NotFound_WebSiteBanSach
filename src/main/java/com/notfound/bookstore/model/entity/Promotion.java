@@ -37,13 +37,10 @@ public class Promotion {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "discount_type", nullable = false)
-    DiscountType discountType; // PERCENTAGE hoặc FIXED_AMOUNT
+    DiscountType discountType = DiscountType.PERCENTAGE;
 
     @Column(name = "discount_value", nullable = false)
     Double discountValue; // Lưu % hoặc số tiền tùy vào discountType
-
-    @Column(name = "discount_percent", nullable = false)
-    Double discountPercent;
 
     @Column(name = "max_discount_amount")
     Double maxDiscountAmount; // Chỉ dùng khi discountType = PERCENTAGE
@@ -65,10 +62,10 @@ public class Promotion {
     Status status;
 
     @Column(name = "created_by")
-    String createdBy; // Username của admin tạo promotion
+    String createdBy;
 
     @Column(name = "updated_by")
-    String updatedBy; // Username của admin cập nhật cuối cùng
+    String updatedBy;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -91,17 +88,8 @@ public class Promotion {
     }
 
     public enum DiscountType {
-        PERCENTAGE,     // Giảm theo % (ví dụ: 10%)
-        FIXED_AMOUNT    // Giảm tiền mặt (ví dụ: 50.000đ)
-    }
-
-    public Promotion(String name, Double discountPercent, LocalDate startDate, LocalDate endDate, String description) {
-        this.name = name;
-        this.discountPercent = discountPercent;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.description = description;
-        this.status = Status.ACTIVE;
+        PERCENTAGE,     // Giảm theo % (vd: 10%)
+        FIXED_AMOUNT    // Giảm tiền mặt (vd: 50.000đ)
     }
 
     public void incrementUsageCount() {
@@ -122,6 +110,37 @@ public class Promotion {
                 && !now.isBefore(startDate)
                 && !now.isAfter(endDate)
                 && usageCount < usageLimit
-                && orderTotal >= minOrderValue; // Check thêm điều kiện này
+                && orderTotal >= minOrderValue;
+    }
+
+    /**
+     * Tính số tiền được giảm dựa trên discount type
+     */
+    public Double calculateDiscountAmount(Double orderTotal) {
+        if (!isValid(orderTotal)) {
+            return 0.0;
+        }
+
+        if (discountType == DiscountType.PERCENTAGE) {
+            Double discountAmount = orderTotal * (discountValue / 100.0);
+            // Áp dụng max discount nếu có
+            if (maxDiscountAmount != null && discountAmount > maxDiscountAmount) {
+                return maxDiscountAmount;
+            }
+            return discountAmount;
+        } else {
+            // FIXED_AMOUNT
+            return Math.min(discountValue, orderTotal);
+        }
+    }
+
+    /**
+     * Backward compatibility - trả về discount percent
+     */
+    public Double getDiscountPercent() {
+        if (discountType == DiscountType.PERCENTAGE) {
+            return discountValue;
+        }
+        return 0.0;
     }
 }

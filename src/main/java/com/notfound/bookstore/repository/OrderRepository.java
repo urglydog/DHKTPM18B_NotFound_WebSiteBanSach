@@ -1,21 +1,24 @@
 package com.notfound.bookstore.repository;
 
-import com.notfound.bookstore.model.entity.CartItem;
 import com.notfound.bookstore.model.entity.Order;
 import com.notfound.bookstore.model.enums.OrderStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
+
 @Repository
 public interface OrderRepository extends JpaRepository<Order, UUID> {
     // Tìm orders theo customer
     List<Order> findByCustomerId(UUID customerId);
+
+    // Tìm orders theo customer với phân trang
+    Page<Order> findByCustomerId(UUID customerId, Pageable pageable);
 
     // Tìm orders theo status
     List<Order> findByStatus(OrderStatus status);

@@ -35,4 +35,3 @@ public class ShippingDetails {
     @Column(name = "shipping_note", columnDefinition = "TEXT")
     String shippingNote; // Ghi chú giao hàng
 }
-
