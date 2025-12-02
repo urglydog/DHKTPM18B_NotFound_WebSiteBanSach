@@ -46,7 +46,9 @@ public class PromotionServiceImpl implements PromotionService {
         Promotion promotion = new Promotion();
         promotion.setName(request.getName());
         promotion.setCode(request.getCode().toUpperCase());
-        promotion.setDiscountPercent(request.getDiscountPercent());
+        promotion.setDiscountType(Promotion.DiscountType.PERCENTAGE);
+        promotion.setDiscountValue(request.getDiscountPercent());
+        promotion.setMinOrderValue(0.0);
         promotion.setStartDate(request.getStartDate());
         promotion.setEndDate(request.getEndDate());
         promotion.setUsageLimit(request.getUsageLimit());
@@ -90,7 +92,8 @@ public class PromotionServiceImpl implements PromotionService {
             promotion.setCode(newCode);
         }
         if (request.getDiscountPercent() != null) {
-            promotion.setDiscountPercent(request.getDiscountPercent());
+            promotion.setDiscountType(Promotion.DiscountType.PERCENTAGE);
+            promotion.setDiscountValue(request.getDiscountPercent());
         }
         if (request.getStartDate() != null) {
             promotion.setStartDate(request.getStartDate());
