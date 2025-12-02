@@ -44,7 +44,17 @@ public class Address {
     BigDecimal latitude;
 
     @Column(precision = 10, scale = 7)
-    BigDecimal  longitude;
+    BigDecimal longitude;
+
+    // --- BỔ SUNG CHO GHN (Giao Hàng Nhanh) ---
+    @Column(name = "ghn_province_id")
+    Integer provinceId; // ID Tỉnh theo GHN (để lọc)
+
+    @Column(name = "ghn_district_id")
+    Integer districtId; // ID Quận/Huyện theo GHN (BẮT BUỘC để tính phí)
+
+    @Column(name = "ghn_ward_code")
+    String wardCode; // Mã Phường/Xã theo GHN (BẮT BUỘC)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

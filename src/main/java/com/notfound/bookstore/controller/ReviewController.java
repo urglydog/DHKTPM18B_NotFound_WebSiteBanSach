@@ -14,6 +14,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * Controller xử lý các chức năng liên quan đến đánh giá sách
+ * Cho phép người dùng thêm đánh giá và xem danh sách đánh giá của sách
+ */
 @RestController
 @RequestMapping("/api/review")
 @RequiredArgsConstructor
@@ -21,6 +25,13 @@ import java.util.UUID;
 public class ReviewController {
     ReviewService reviewService;
 
+    /**
+     * Thêm đánh giá mới cho một cuốn sách
+     * Người dùng cần đăng nhập và đã mua sách mới có thể đánh giá
+     *
+     * @param request Thông tin đánh giá bao gồm bookId, rating (1-5 sao), content
+     * @return Thông tin đánh giá vừa được tạo
+     */
     @PostMapping("/book/add")
     public ApiResponse<ReviewResponse> addReviewBook(@Valid @RequestBody CreateReviewRequest request) {
         ReviewResponse review = reviewService.addReviewBook(request);
@@ -31,6 +42,15 @@ public class ReviewController {
                 .build();
     }
 
+    /**
+     * Lấy danh sách đánh giá của một cuốn sách
+     * Hỗ trợ phân trang để hiển thị danh sách đánh giá
+     *
+     * @param bookId ID của sách cần xem đánh giá
+     * @param page Số trang (mặc định: 0)
+     * @param size Kích thước trang (mặc định: 10)
+     * @return Danh sách đánh giá được phân trang bao gồm thông tin người đánh giá, rating, nội dung và thời gian
+     */
     @GetMapping("/book/{bookId}")
     public ApiResponse<Page<ReviewResponse>> getListReviewByBookId(
             @PathVariable UUID bookId,

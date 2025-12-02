@@ -21,4 +21,12 @@ public interface NewsRepository extends JpaRepository<News, UUID> {
     // Tìm kiếm tin tức
     Page<News> findByTitleContainingIgnoreCaseOrderByCreatedAtDesc(String title, Pageable pageable);
 
+    // THÊM MỚI - Lấy news theo status (DRAFT, PUBLISHED, ARCHIVED)
+    Page<News> findByStatusOrderByCreatedAtDesc(News.Status status, Pageable pageable);
+
+    // THÊM MỚI - Tìm theo status và author
+    Page<News> findByStatusAndAuthorIdOrderByCreatedAtDesc(News.Status status, UUID authorId, Pageable pageable);
+
+    // THÊM MỚI - Đếm số lượng news theo status
+    long countByStatus(News.Status status);
 }

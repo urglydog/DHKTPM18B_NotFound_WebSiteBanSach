@@ -69,7 +69,16 @@ public enum ErrorCode {
     PROMOTION_INACTIVE(HttpStatus.BAD_REQUEST, 4007, "Khuyến mãi đang không hoạt động."),
 
     // ==== Lỗi hệ thống không phân loại ====
-    UNCATEGORIZED_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 9999, "Uncategorized error");
+    UNCATEGORIZED_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, 9999, "Uncategorized error"),
+
+    // ==== Lỗi Tin tức ====
+    NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, 6001, "News not found."),
+
+    // ==== Lỗi Quản lý Người dùng ====
+    USER_HAS_ORDERS(HttpStatus.CONFLICT, 2010, "Cannot delete user with existing orders."),
+    CANNOT_DELETE_ADMIN(HttpStatus.FORBIDDEN, 2011, "Cannot delete admin user."),
+    CANNOT_BAN_ADMIN(HttpStatus.FORBIDDEN, 2012, "Cannot ban admin user.");
+
 
     private final HttpStatus httpStatus;
     private final int code;
@@ -80,4 +89,6 @@ public enum ErrorCode {
         this.code = code;
         this.message = message;
     }
+
+
 }

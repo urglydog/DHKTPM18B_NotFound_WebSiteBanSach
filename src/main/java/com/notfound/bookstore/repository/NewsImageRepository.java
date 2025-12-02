@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface NewsImageRepository extends JpaRepository<NewsImage, UUID> {
+public interface NewsImageRepository extends JpaRepository<NewsImage, Long> {
     List<NewsImage> findByNews(News news);
     List<NewsImage> findByNewsNewsID(UUID newsId);
 }

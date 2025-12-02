@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controller xử lý các chức năng liên quan đến khuyến mãi
+ * Bao gồm tạo, cập nhật, xóa khuyến mãi và xác thực mã khuyến mãi
+ */
 @RestController
 @RequestMapping("/api/promotions")
 @RequiredArgsConstructor
@@ -28,8 +32,11 @@ public class PromotionController {
     PromotionService promotionService;
 
     /**
-     * Tạo khuyến mãi mới (Admin only)
-     * POST /api/promotions
+     * Tạo khuyến mãi mới (Chỉ Admin)
+     * Cho phép tạo các loại khuyến mãi: giảm giá theo phần trăm, số tiền cố định
+     *
+     * @param request Thông tin khuyến mãi bao gồm code, description, discountType, discountValue, startDate, endDate, minOrderValue
+     * @return Thông tin khuyến mãi vừa được tạo
      */
     @PostMapping
     public ApiResponse<PromotionResponse> createPromotion(
@@ -43,8 +50,12 @@ public class PromotionController {
     }
 
     /**
-     * Cập nhật khuyến mãi (Admin only)
-     * PUT /api/promotions/{id}
+     * Cập nhật thông tin khuyến mãi (Chỉ Admin)
+     * Có thể cập nhật mô tả, giá trị giảm giá, thời gian hiệu lực
+     *
+     * @param id ID của khuyến mãi cần cập nhật
+     * @param request Thông tin cập nhật
+     * @return Thông tin khuyến mãi sau khi cập nhật
      */
     @PutMapping("/{id}")
     public ApiResponse<PromotionResponse> updatePromotion(
@@ -59,8 +70,11 @@ public class PromotionController {
     }
 
     /**
-     * Xóa khuyến mãi (Admin only)
-     * DELETE /api/promotions/{id}
+     * Xóa khuyến mãi khỏi hệ thống (Chỉ Admin)
+     * Xóa vĩnh viễn hoặc soft delete tùy cấu hình
+     *
+     * @param id ID của khuyến mãi cần xóa
+     * @return Kết quả xóa khuyến mãi
      */
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deletePromotion(@PathVariable UUID id) {
@@ -72,8 +86,11 @@ public class PromotionController {
     }
 
     /**
-     * Lấy khuyến mãi theo ID
-     * GET /api/promotions/{id}
+     * Lấy thông tin chi tiết của một khuyến mãi (admin)
+     * Trả về đầy đủ thông tin bao gồm điều kiện áp dụng, thời gian hiệu lực
+     *
+     * @param id ID của khuyến mãi cần xem
+     * @return Thông tin chi tiết của khuyến mãi
      */
     @GetMapping("/{id}")
     public ApiResponse<PromotionResponse> getPromotionById(@PathVariable UUID id) {
@@ -86,8 +103,12 @@ public class PromotionController {
     }
 
     /**
-     * Lấy tất cả khuyến mãi (có phân trang) (Admin only)
-     * GET /api/promotions?page=0&size=10
+     * Lấy tất cả khuyến mãi có phân trang (Chỉ Admin)
+     * Hiển thị tất cả khuyến mãi trong hệ thống kể cả đã hết hạn
+     *
+     * @param page Số trang (mặc định: 0)
+     * @param size Kích thước trang (mặc định: 10)
+     * @return Danh sách khuyến mãi được phân trang
      */
     @GetMapping
     public ApiResponse<Page<PromotionResponse>> getAllPromotions(
@@ -104,7 +125,9 @@ public class PromotionController {
 
     /**
      * Lấy danh sách khuyến mãi đang hoạt động (Public)
-     * GET /api/promotions/active
+     * Chỉ trả về các khuyến mãi còn hiệu lực và đang ở trạng thái ACTIVE
+     *
+     * @return Danh sách khuyến mãi đang hoạt động
      */
     @GetMapping("/active")
     public ApiResponse<List<PromotionResponse>> getActivePromotions() {
@@ -117,8 +140,11 @@ public class PromotionController {
     }
 
     /**
-     * Lấy khuyến mãi áp dụng cho sách
-     * GET /api/promotions/book/{bookId}
+     * Lấy danh sách khuyến mãi áp dụng cho một cuốn sách cụ thể
+     * Trả về các khuyến mãi đang hoạt động và có thể áp dụng cho sách
+     *
+     * @param bookId ID của sách cần xem khuyến mãi
+     * @return Danh sách khuyến mãi áp dụng cho sách
      */
     @GetMapping("/book/{bookId}")
     public ApiResponse<List<PromotionResponse>> getPromotionsByBookId(
@@ -132,8 +158,12 @@ public class PromotionController {
     }
 
     /**
-     * Validate mã khuyến mãi (Public)
-     * POST /api/promotions/validate
+     * Xác thực mã khuyến mãi (Public)
+     * Kiểm tra tính hợp lệ của mã khuyến mãi trước khi áp dụng vào đơn hàng
+     * Kiểm tra: mã tồn tại, còn hiệu lực, đủ điều kiện áp dụng
+     *
+     * @param request Thông tin xác thực bao gồm promotionCode, orderValue, bookIds
+     * @return Kết quả xác thực với thông tin giảm giá nếu hợp lệ
      */
     @PostMapping("/validate")
     public ApiResponse<PromotionValidationResponse> validatePromotionCode(
@@ -147,8 +177,12 @@ public class PromotionController {
     }
 
     /**
-     * Cập nhật trạng thái khuyến mãi (Admin only)
-     * PATCH /api/promotions/{id}/status?status=ACTIVE
+     * Cập nhật trạng thái khuyến mãi (Chỉ Admin)
+     * Cho phép kích hoạt/vô hiệu hóa khuyến mãi mà không cần xóa
+     *
+     * @param id ID của khuyến mãi
+     * @param status Trạng thái mới (ACTIVE, INACTIVE, EXPIRED)
+     * @return Thông tin khuyến mãi sau khi cập nhật trạng thái
      */
     @PatchMapping("/{id}/status")
     public ApiResponse<PromotionResponse> updatePromotionStatus(
