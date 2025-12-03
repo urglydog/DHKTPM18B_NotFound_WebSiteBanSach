@@ -92,11 +92,14 @@ public class BookController {
      * @return Danh sách tất cả sách được phân trang
      */
     @GetMapping
-    public ApiResponse<PageResponse<BookSummaryResponse>> getAllBooks(@ModelAttribute BookSearchRequest request) {
+    public ApiResponse<PageResponse<BookSummaryResponse>> getAllBooks(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize
+    ) {
         return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
                 .code(1000)
                 .message("Lấy danh sách sách thành công")
-                .result(bookService.searchBooks(request))
+                .result(bookService.getAllBooks(page, pageSize))  // ✅ ĐÚNG
                 .build();
     }
 
