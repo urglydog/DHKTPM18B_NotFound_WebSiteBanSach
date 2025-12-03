@@ -221,7 +221,18 @@ public class AuthServiceImpl implements AuthService {
                 throw new AppException(ErrorCode.INVALID_TOKEN_TYPE);
             }
 
-            return claims.getSubject();
+            String email = claims.getSubject();
+
+            // Tìm user và cập nhật isEmailVerified
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+            user.setIsEmailVerified(true);
+            userRepository.save(user);
+
+            return email;
+        } catch (AppException e) {
+            throw e;
         } catch (Exception e) {
             throw new AppException(ErrorCode.INVALID_TOKEN);
         }
