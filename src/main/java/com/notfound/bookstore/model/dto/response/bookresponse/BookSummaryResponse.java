@@ -21,4 +21,5 @@ public class BookSummaryResponse {
     Integer reviewCount;
     Integer stockQuantity;
     List<String> authorNames;
+    List<String> categoryId;
 }
