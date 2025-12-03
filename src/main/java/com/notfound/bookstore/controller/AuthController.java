@@ -210,20 +210,31 @@ public class AuthController {
      * @return Kết quả xác thực email
      */
     @GetMapping("/confirm-email")
-    public ApiResponse<Void> confirmEmail(@RequestParam("token") String token) {
+    public void confirmEmail(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
+        try {
+            if (token == null || token.isEmpty()) {
+                String errorUrl = "http://localhost:3000/error?message=" +
+                        URLEncoder.encode("Token không hợp lệ", StandardCharsets.UTF_8);
+                response.sendRedirect(errorUrl);
+                return;
+            }
 
-        if (token == null) {
-            return ApiResponse.<Void>builder()
-                    .code(4000)
-                    .message("Xác thực không thành công")
-                    .build();
+            String email = authService.validateEmailVerificationToken(token);
+
+            // Redirect về trang success khi xác thực thành công
+            String successUrl = "http://localhost:3000/success?email=" +
+                    URLEncoder.encode(email, StandardCharsets.UTF_8);
+            response.sendRedirect(successUrl);
+
+        } catch (AppException e) {
+            String errorUrl = "http://localhost:3000/error?message=" +
+                    URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+            response.sendRedirect(errorUrl);
+        } catch (Exception e) {
+            String errorUrl = "http://localhost:3000/error?message=" +
+                    URLEncoder.encode("Xác thực email thất bại", StandardCharsets.UTF_8);
+            response.sendRedirect(errorUrl);
         }
-
-        String email = authService.validateEmailVerificationToken(token);
-        return ApiResponse.<Void>builder()
-                .code(200)
-                .message("Xác thực email thành công " + email)
-                .build();
     }
 
     /**
