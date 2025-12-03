@@ -13,13 +13,11 @@ import com.notfound.bookstore.repository.BookRepository;
 import com.notfound.bookstore.service.BookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import java.time.LocalDate;
 import java.util.UUID;
 
 @Slf4j
@@ -94,6 +92,26 @@ public class BookServiceImpl implements BookService {
         };
 
         Page<BookSummaryResponse> responsePage = bookPage.map(bookMapper::toBookSummaryResponse);
+        return bookMapper.toPageResponse(responsePage);
+    }
+
+    // Lấy tất cả sách với phân trang đơn giản
+    @Override
+    public PageResponse<BookSummaryResponse> getAllBooks(Integer page, Integer pageSize) {
+        Pageable pageable = PageRequest.of(
+                page != null ? page : 0,
+                pageSize != null ? pageSize : 10
+        );
+
+        Page<BookWithRating> resultPage = bookRepository.findAllBooksWithRating(pageable);
+
+        Page<BookSummaryResponse> responsePage = resultPage.map(result -> {
+            BookSummaryResponse response = bookMapper.toBookSummaryResponse(result.getBook());
+            response.setAverageRating(result.getAverageRating());
+            response.setReviewCount(result.getReviewCount().intValue());
+            return response;
+        });
+
         return bookMapper.toPageResponse(responsePage);
     }
 

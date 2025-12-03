@@ -3,6 +3,7 @@ package com.notfound.bookstore.model.dto.response.bookresponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -18,4 +19,7 @@ public class BookSummaryResponse {
     String mainImageUrl;
     Double averageRating;
     Integer reviewCount;
+    Integer stockQuantity;
+    List<String> authorNames;
+    List<String> categoryId;
 }
