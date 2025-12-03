@@ -71,9 +71,11 @@ public class User {
     LocalDateTime lastLogin;
 
     // 2. Loyalty (Khách hàng thân thiết)
+    @Builder.Default
     @Column(name = "points", nullable = false)
     Integer points = 0; // Điểm tích lũy
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "membership_tier")
     MembershipTier membershipTier = MembershipTier.BRONZE;
@@ -82,10 +84,12 @@ public class User {
     @Column(name = "date_of_birth")
     LocalDate dateOfBirth; // Để tặng quà sinh nhật
 
+    @Builder.Default
     @Column(name = "is_email_verified")
     Boolean isEmailVerified = false;
 
     // 4. Social Login (Nếu muốn mở rộng sau này)
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider")
     AuthProvider authProvider = AuthProvider.LOCAL;
