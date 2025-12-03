@@ -8,6 +8,7 @@ public enum ErrorCode {
 
     // ==== 4xx: Lỗi phía client ====
     BAD_REQUEST(HttpStatus.BAD_REQUEST, 4000, "Invalid syntax for this request."),
+    ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, 2002, "Address not found."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4010, "User not authenticated."),
     FORBIDDEN(HttpStatus.FORBIDDEN, 4030, "Access denied."),
     NOT_FOUND(HttpStatus.NOT_FOUND, 4040, "Resource not found."),
