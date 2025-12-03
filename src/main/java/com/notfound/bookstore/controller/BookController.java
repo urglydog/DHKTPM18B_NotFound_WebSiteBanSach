@@ -99,7 +99,7 @@ public class BookController {
         return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
                 .code(1000)
                 .message("Lấy danh sách sách thành công")
-                .result(bookService.getAllBooks(page, pageSize))  // ✅ ĐÚNG
+                .result(bookService.getAllBooks(page, pageSize))
                 .build();
     }
 
