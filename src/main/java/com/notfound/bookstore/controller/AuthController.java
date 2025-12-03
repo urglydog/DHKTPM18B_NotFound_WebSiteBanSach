@@ -14,6 +14,7 @@ import com.notfound.bookstore.service.EmailService;
 import com.notfound.bookstore.service.RedisService;
 import com.notfound.bookstore.service.UserService;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,9 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
 /**
@@ -225,31 +229,33 @@ public class AuthController {
     /**
      * Xử lý callback từ Google OAuth
      * Đăng nhập hoặc tạo tài khoản mới thông qua Google
+     * Sau đó redirect về frontend (ví dụ: http://localhost:3000/)
      *
-     * @param code Authorization code từ Google
-     * @return Thông tin xác thực sau khi đăng nhập Google thành công
+     * Lưu ý: để đơn giản, token được truyền về FE qua query param.
+     * FE cần đọc token từ URL và lưu vào localStorage/sessionStorage.
      */
     @GetMapping("/google/callback")
-    public ApiResponse<AuthResponse> googleCallback(@RequestParam("code") String code) {
+    public void googleCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
+        // Nếu không có code hoặc rỗng → redirect về FE với lỗi
         if (code == null || code.isEmpty()) {
-            return ApiResponse.<AuthResponse>builder()
-                    .code(4000)
-                    .message("Authorization code không hợp lệ")
-                    .build();
+            String errorUrl = "http://localhost:3000/?error=" +
+                    URLEncoder.encode("google_invalid_code", StandardCharsets.UTF_8);
+            response.sendRedirect(errorUrl);
+            return;
         }
 
         try {
             AuthResponse authResponse = authService.handleGoogleOAuthCallback(code);
-            return ApiResponse.<AuthResponse>builder()
-                    .code(1000)
-                    .message("Đăng nhập Google thành công!")
-                    .result(authResponse)
-                    .build();
+
+            // Truyền token cho FE qua query param (hoặc có thể dùng cookie tùy thiết kế)
+            String redirectUrl = "http://localhost:3000/?token=" +
+                    URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8);
+
+            response.sendRedirect(redirectUrl);
         } catch (Exception e) {
-            return ApiResponse.<AuthResponse>builder()
-                    .code(4000)
-                    .message("Đăng nhập Google thất bại: " + e.getMessage())
-                    .build();
+            String errorUrl = "http://localhost:3000/?error=" +
+                    URLEncoder.encode("google_login_failed", StandardCharsets.UTF_8);
+            response.sendRedirect(errorUrl);
         }
     }
 }
