@@ -23,11 +23,14 @@ public interface BookMapper {
     @Mapping(target = "imageUrls", source = "images", qualifiedByName = "imagesToUrls")
     @Mapping(target = "averageRating", source = "reviews", qualifiedByName = "calculateAverageRating")
     @Mapping(target = "reviewCount", source = "reviews", qualifiedByName = "countReviews")
+    @Mapping(target = "categoryId", source = "categories", qualifiedByName = "categoriesToIds")
     BookResponse toBookResponse(Book book);
 
     @Mapping(target = "mainImageUrl", source = "images", qualifiedByName = "getMainImageUrl")
     @Mapping(target = "averageRating", source = "reviews", qualifiedByName = "calculateAverageRating")
     @Mapping(target = "reviewCount", source = "reviews", qualifiedByName = "countReviews")
+    @Mapping(target = "authorNames", source = "authors", qualifiedByName = "authorsToNames")
+    @Mapping(target = "categoryId", source = "categories", qualifiedByName = "categoriesToIds")
     BookSummaryResponse toBookSummaryResponse(Book book);
 
     List<BookResponse> toBookResponseList(List<Book> books);
@@ -41,6 +44,14 @@ public interface BookMapper {
                 .totalPages(page.getTotalPages())
                 .totalElements(page.getTotalElements())
                 .build();
+    }
+
+    @Named("categoriesToIds")
+    default List<String> categoriesToIds(List<Category> categories) {
+        if (categories == null) return List.of();
+        return categories.stream()
+                .map(category -> category.getId().toString())
+                .collect(Collectors.toList());
     }
 
     @Named("authorsToNames")

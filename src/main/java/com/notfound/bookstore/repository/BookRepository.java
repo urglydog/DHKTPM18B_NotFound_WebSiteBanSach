@@ -127,4 +127,10 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     @Query("SELECT b FROM Book b LEFT JOIN b.reviews r GROUP BY b.id ORDER BY AVG(r.rating) ASC")
     Page<Book> findAllOrderByAverageRatingAsc(Pageable pageable);
 
+    // Lấy tất cả sách với thông tin rating
+    @Query("SELECT b as book, COALESCE(AVG(r.rating), 0) as averageRating, COUNT(r) as reviewCount " +
+            "FROM Book b LEFT JOIN b.reviews r " +
+            "GROUP BY b.id")
+    Page<BookWithRating> findAllBooksWithRating(Pageable pageable);
+
 }
