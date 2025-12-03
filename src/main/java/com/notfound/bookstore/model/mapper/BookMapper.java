@@ -30,6 +30,7 @@ public interface BookMapper {
     @Mapping(target = "averageRating", source = "reviews", qualifiedByName = "calculateAverageRating")
     @Mapping(target = "reviewCount", source = "reviews", qualifiedByName = "countReviews")
     @Mapping(target = "authorNames", source = "authors", qualifiedByName = "authorsToNames")
+    @Mapping(target = "categoryId", source = "categories", qualifiedByName = "categoriesToIds")
     BookSummaryResponse toBookSummaryResponse(Book book);
 
     List<BookResponse> toBookResponseList(List<Book> books);
