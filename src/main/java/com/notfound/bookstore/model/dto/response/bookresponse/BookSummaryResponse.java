@@ -18,4 +18,5 @@ public class BookSummaryResponse {
     String mainImageUrl;
     Double averageRating;
     Integer reviewCount;
+    Integer stockQuantity;
 }
