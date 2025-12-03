@@ -23,6 +23,9 @@ public interface BookService {
     //Lấy danh sách sách được sắp xếp theo loại sắp xếp được chỉ định
     PageResponse<BookSummaryResponse> getSortedBooks(BookSortRequest request);
 
+    //Lấy tất cả sách với phân trang
+    PageResponse<BookSummaryResponse> getAllBooks(Integer page, Integer pageSize);
+
     //Lấy thông tin chi tiết của một cuốn sách dựa trên ID
     BookResponse getBookById(String id);
 }
