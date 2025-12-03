@@ -17,4 +17,5 @@ public class UserResponse {
     String fullName;
     String phoneNumber;
     String role;
+    boolean isEmailVerified;
 }

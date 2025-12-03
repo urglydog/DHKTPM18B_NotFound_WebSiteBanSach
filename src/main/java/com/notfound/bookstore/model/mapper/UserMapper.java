@@ -14,5 +14,6 @@ public interface UserMapper {
     @Mapping(source = "fullName", target = "fullName")
     @Mapping(source = "phoneNumber", target = "phoneNumber")
     @Mapping(source = "role", target = "role")
+    @Mapping(source = "isEmailVerified", target = "isEmailVerified")
     UserResponse toUserResponse(User user);
 }
