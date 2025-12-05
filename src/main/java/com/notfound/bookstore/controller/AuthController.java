@@ -22,6 +22,8 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -258,11 +260,22 @@ public class AuthController {
         try {
             AuthResponse authResponse = authService.handleGoogleOAuthCallback(code);
 
-            // Truyền token cho FE qua query param (hoặc có thể dùng cookie tùy thiết kế)
-            String redirectUrl = "http://localhost:3000/?token=" +
-                    URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8);
+            // Xây dựng URL với token, refreshToken và thông tin user
+            StringBuilder redirectUrl = new StringBuilder("http://localhost:3000/?");
+            redirectUrl.append("token=").append(URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
+            
+            if (authResponse.getRefreshToken() != null) {
+                redirectUrl.append("&refreshToken=").append(URLEncoder.encode(authResponse.getRefreshToken(), StandardCharsets.UTF_8));
+            }
+            
+            // Gửi thông tin user dưới dạng JSON trong query param
+            if (authResponse.getUser() != null) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                String userJson = objectMapper.writeValueAsString(authResponse.getUser());
+                redirectUrl.append("&user=").append(URLEncoder.encode(userJson, StandardCharsets.UTF_8));
+            }
 
-            response.sendRedirect(redirectUrl);
+            response.sendRedirect(redirectUrl.toString());
         } catch (Exception e) {
             String errorUrl = "http://localhost:3000/?error=" +
                     URLEncoder.encode("google_login_failed", StandardCharsets.UTF_8);
