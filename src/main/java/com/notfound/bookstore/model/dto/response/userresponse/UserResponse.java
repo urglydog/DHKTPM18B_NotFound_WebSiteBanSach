@@ -3,6 +3,8 @@ package com.notfound.bookstore.model.dto.response.userresponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -17,5 +19,12 @@ public class UserResponse {
     String fullName;
     String phoneNumber;
     String role;
-    boolean isEmailVerified;
+    Boolean emailVerified;
+    String avatarUrl;
+    LocalDate dateOfBirth;
+    String gender;
+    LocalDateTime lastLogin;
+    String membershipTier;
+    Integer points;
+    String providerId;
 }
