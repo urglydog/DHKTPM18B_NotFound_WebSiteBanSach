@@ -48,6 +48,8 @@ public enum ErrorCode {
 
     // ==== Lỗi xác thực/người dùng (nhánh con của 4xx) ====
     USER_EXISTED(HttpStatus.CONFLICT, 2001, "User already exists."),
+    USERNAME_EXISTED(HttpStatus.CONFLICT, 2013, "Tên đăng nhập đã tồn tại."),
+    EMAIL_EXISTED(HttpStatus.CONFLICT, 2014, "Email đã tồn tại."),
     MAIL_NOT_EXISTED(HttpStatus.NOT_FOUND, 2003, "Mail not exists"),
     TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, 4290, "OTP chưa hết hạn, vui lòng thử lại sau."),
     USER_NOT_EXISTED(HttpStatus.NOT_FOUND, 2002, "User not found."),

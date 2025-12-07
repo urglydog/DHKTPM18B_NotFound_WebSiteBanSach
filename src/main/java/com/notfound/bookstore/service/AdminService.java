@@ -39,4 +39,6 @@ public interface AdminService {
     List<CategoryResponse> getAllCategories();
 
     Page<CategoryResponse> getAllCategories(Pageable pageable);
+
+    String uploadAvatar(MultipartFile image);
 }

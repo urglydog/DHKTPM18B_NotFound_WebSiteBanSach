@@ -421,4 +421,22 @@ public class AdminServiceImpl implements AdminService {
                 .totalBooks(totalBooks)
                 .build();
     }
+
+    @Override
+    public String uploadAvatar(MultipartFile image) {
+        log.info("Uploading avatar image...");
+        
+        if (image == null || image.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST);
+        }
+
+        // Upload to Cloudinary with folder "bookstore/avatars"
+        Map<String, Object> uploadResult = imageService.uploadImage(image, "bookstore/avatars");
+        
+        // Get URL from upload result
+        String avatarUrl = (String) uploadResult.get("url");
+        
+        log.info("Avatar uploaded successfully: {}", avatarUrl);
+        return avatarUrl;
+    }
 }

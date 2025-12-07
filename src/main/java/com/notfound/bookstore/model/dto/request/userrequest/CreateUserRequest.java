@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -36,6 +38,8 @@ public class CreateUserRequest {
     String gender;
 
     String avatarUrl;
+
+    LocalDate dateOfBirth;
 
     @Pattern(regexp = "^(GUEST|CUSTOMER|ADMIN)$", message = "Role must be GUEST, CUSTOMER or ADMIN")
     String role; // Default sẽ là CUSTOMER nếu không có

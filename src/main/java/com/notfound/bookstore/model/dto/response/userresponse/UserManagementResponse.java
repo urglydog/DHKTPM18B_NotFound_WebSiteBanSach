@@ -4,6 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -21,7 +22,12 @@ public class UserManagementResponse {
     String avatarUrl;
     String role;
     String status;
+    LocalDate dateOfBirth;
+    Integer points;
+    String membershipTier;
+    Boolean isEmailVerified;
     LocalDateTime createdAt;
+    LocalDateTime lastLogin;
     Integer totalOrders;
     BigDecimal totalSpent;
 }
