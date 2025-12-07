@@ -78,8 +78,18 @@ public enum ErrorCode {
     // ==== Lỗi Quản lý Người dùng ====
     USER_HAS_ORDERS(HttpStatus.CONFLICT, 2010, "Cannot delete user with existing orders."),
     CANNOT_DELETE_ADMIN(HttpStatus.FORBIDDEN, 2011, "Cannot delete admin user."),
-    CANNOT_BAN_ADMIN(HttpStatus.FORBIDDEN, 2012, "Cannot ban admin user.");
+    CANNOT_BAN_ADMIN(HttpStatus.FORBIDDEN, 2012, "Cannot ban admin user."),
 
+    // ==== Lỗi Vận chuyển (Shipment) ====
+    SHIPMENT_NOT_FOUND(HttpStatus.NOT_FOUND, 7001, "Shipment not found."),
+    SHIPMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, 7002, "Shipment already exists for this order."),
+    SHIPMENT_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7003, "Failed to create shipment."),
+    GHN_API_ERROR(HttpStatus.BAD_GATEWAY, 7004, "GHN API error occurred."),
+    GHN_INVALID_RESPONSE(HttpStatus.BAD_GATEWAY, 7005, "Invalid response from GHN API."),
+    SHIPMENT_CANNOT_CANCEL(HttpStatus.BAD_REQUEST, 7006, "Cannot cancel shipment in current status."),
+    SHIPMENT_INVALID_STATUS(HttpStatus.BAD_REQUEST, 7007, "Invalid shipment status transition."),
+    SHIPMENT_CANCEL_FAILED(HttpStatus.BAD_REQUEST, 5006, "Failed to cancel shipment"),
+    INVALID_SHIPPING_ADDRESS(HttpStatus.BAD_REQUEST, 7008, "Invalid shipping address for shipment.");
 
     private final HttpStatus httpStatus;
     private final int code;
