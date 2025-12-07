@@ -65,6 +65,9 @@ public class SecurityConfig {
 
             // OAuth2
             "/oauth2/**",
+
+            //Shipment
+            "/api/shipment/customer/**"
     };
 
         @Value("${jwt.signerKey}")

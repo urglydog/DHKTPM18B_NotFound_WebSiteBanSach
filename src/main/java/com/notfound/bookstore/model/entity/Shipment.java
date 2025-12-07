@@ -29,59 +29,53 @@ public class Shipment {
     @JoinColumn(name = "order_id", nullable = false)
     Order order;
 
-    // --- THÔNG TIN GHN (Giao Hàng Nhanh) ---
-
     @Column(name = "carrier", nullable = false)
-    String carrier = "GHN"; // Mặc định là GHN
+    String carrier = "GHN";
 
     @Column(name = "ghn_order_code", unique = true)
-    String ghnOrderCode; // Mã đơn hàng phía GHN (vd: L8CC2...) dùng để in bill
+    String ghnOrderCode;
 
     @Column(name = "ghn_service_type_id")
-    Integer serviceTypeId; // Loại dịch vụ: 1 (Bay), 2 (Bộ), 5 (Thường)...
+    Integer serviceTypeId;
 
     @Column(name = "ghn_total_fee")
-    Double ghnTotalFee; // Phí ship thực tế GHN thu của Shop
+    Double ghnTotalFee;
 
     @Column(name = "expected_delivery_time")
-    LocalDateTime expectedDeliveryTime; // Thời gian dự kiến giao (GHN trả về)
+    LocalDateTime expectedDeliveryTime;
 
     @Column(name = "sorting_code")
-    String sortingCode; // Mã phân loại hàng (vd: 10-A-01) để in lên tem
-
-    // --- THÔNG TIN BÊN GỬI (Shop) ---
+    String sortingCode;
 
     @Column(name = "from_name")
-    String fromName; // Tên shop
+    String fromName;
 
     @Column(name = "from_phone")
-    String fromPhone; // SĐT shop
+    String fromPhone;
 
     @Column(name = "from_address")
-    String fromAddress; // Địa chỉ lấy hàng
+    String fromAddress;
 
     @Column(name = "from_ward_code")
-    String fromWardCode; // Mã phường shop
+    String fromWardCode;
 
     @Column(name = "from_district_id")
-    Integer fromDistrictId; // Mã quận shop
-
-    // --- THÔNG TIN BÊN NHẬN (Customer) - Đã lưu snapshot ---
+    Integer fromDistrictId;
 
     @Column(name = "to_name")
-    String toName; // Tên người nhận
+    String toName;
 
     @Column(name = "to_phone")
-    String toPhone; // SĐT người nhận
+    String toPhone;
 
     @Column(name = "to_address")
-    String toAddress; // Địa chỉ đầy đủ
+    String toAddress;
 
     @Column(name = "to_ward_code")
-    String toWardCode; // Mã phường người nhận
+    String toWardCode;
 
     @Column(name = "to_district_id")
-    Integer toDistrictId; // Mã quận người nhận
+    Integer toDistrictId;
 
     // --- TRẠNG THÁI & TRACKING ---
 
@@ -96,16 +90,16 @@ public class Shipment {
     String note; // Ghi chú giao hàng
 
     @Column(name = "weight")
-    Integer weight; // Khối lượng (gram)
+    Integer weight;
 
     @Column(name = "length")
-    Integer length; // Chiều dài (cm)
+    Integer length;
 
     @Column(name = "width")
-    Integer width; // Chiều rộng (cm)
+    Integer width;
 
     @Column(name = "height")
-    Integer height; // Chiều cao (cm)
+    Integer height;
 
     @Column(name = "insurance_value")
     Double insuranceValue; // Giá trị hàng hóa để bảo hiểm
