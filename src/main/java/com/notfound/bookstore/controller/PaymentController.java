@@ -13,13 +13,15 @@ import com.notfound.bookstore.service.impl.MoMoServiceImpl;
 import com.notfound.bookstore.service.impl.VNPayServiceImpl;
 import com.notfound.bookstore.service.impl.ZaloPayServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.UnsupportedEncodingException;
-import java.util.Map;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.util.Base64;
 
 /**
  * Controller xử lý các chức năng thanh toán
@@ -157,12 +159,71 @@ public class PaymentController {
     /**
      * MoMo return URL (user redirect back)
      * GET /api/payment/momo/return
+     * Xử lý callback từ MoMo, cập nhật Order status, và redirect về Frontend
      */
     @GetMapping("/momo/return")
-    public ApiResponse<PaymentResponse> handleMoMoReturn() {
-        return ApiResponse.<PaymentResponse>builder()
-                .code(200)
-                .message("Thanh toán MoMo thành công")
-                .build();
+    public void handleMoMoReturn(
+            @RequestParam(required = false) String partnerCode,
+            @RequestParam(required = false) String orderId,
+            @RequestParam(required = false) String requestId,
+            @RequestParam(required = false) Long amount,
+            @RequestParam(required = false) String orderInfo,
+            @RequestParam(required = false) String orderType,
+            @RequestParam(required = false) Long transId,
+            @RequestParam(required = false) Integer resultCode,
+            @RequestParam(required = false) String message,
+            @RequestParam(required = false) String payType,
+            @RequestParam(required = false) Long responseTime,
+            @RequestParam(required = false) String extraData,
+            @RequestParam(required = false) String signature,
+            HttpServletResponse response
+    ) throws IOException {
+        // 1. Chuyển đổi parameters thành MoMoCallbackRequest
+        MoMoCallbackRequest callback = new MoMoCallbackRequest();
+        callback.setPartnerCode(partnerCode);
+        callback.setOrderId(orderId);
+        callback.setRequestId(requestId);
+        callback.setAmount(amount);
+        callback.setOrderInfo(orderInfo);
+        callback.setOrderType(orderType);
+        callback.setTransId(transId);
+        callback.setResultCode(resultCode);
+        callback.setMessage(message);
+        callback.setPayType(payType);
+        callback.setResponseTime(responseTime);
+        callback.setExtraData(extraData);
+        callback.setSignature(signature);
+
+        // 2. Xử lý cập nhật payment và order status
+        PaymentResponse paymentResponse = moMoService.handleMoMoCallback(callback);
+
+        // 3. Lấy redirectUrl từ Payment entity (đã lưu khi tạo payment)
+        String redirectUrl = moMoService.getRedirectUrlByTransactionId(orderId);
+
+        // Fallback nếu không tìm thấy redirectUrl trong DB
+        if (redirectUrl == null || redirectUrl.isEmpty()) {
+            // Thử decode từ extraData
+            if (extraData != null && !extraData.isEmpty()) {
+                try {
+                    byte[] decodedBytes = Base64.getDecoder().decode(extraData);
+                    redirectUrl = new String(decodedBytes);
+                } catch (Exception e) {
+                    redirectUrl = "http://localhost:3000"; // Last resort fallback
+                }
+            } else {
+                redirectUrl = "http://localhost:3000"; // Last resort fallback
+            }
+        }
+
+        // 4. Build final redirect URL with payment result
+        String finalUrl = redirectUrl
+                + "?resultCode=" + resultCode
+                + "&message=" + (message != null ? URLEncoder.encode(message, "UTF-8") : "")
+                + "&orderId=" + paymentResponse.getOrderId()
+                + "&paymentId=" + paymentResponse.getPaymentId()
+                + "&status=" + paymentResponse.getStatus();
+
+        // 5. Redirect về Frontend
+        response.sendRedirect(finalUrl);
     }
 }

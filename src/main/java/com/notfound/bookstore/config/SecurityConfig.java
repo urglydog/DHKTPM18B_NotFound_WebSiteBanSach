@@ -35,6 +35,7 @@ public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = {
             "/api/public/**",
+            "/favicon.ico",
 
             // Auth
             "/api/auth/**",
@@ -58,8 +59,13 @@ public class SecurityConfig {
             // Review
             "/api/review/book/{bookId}",
 
-            // Payment
+            // Payment - Allow callback and return URLs (these are called by payment gateways or redirect from them)
+            "/api/payment/*/callback",
+            "/api/payment/*/return",
             "/api/payment/vnpay/callback",
+            "/api/payment/vnpay/return",
+            "/api/payment/momo/callback",
+            "/api/payment/momo/return",
             "/api/payment/zalopay/callback",
             "/api/payment/zalopay/return",
 

@@ -15,4 +15,5 @@ public class PaymentRequest {
     Long amount;
     String orderInfo;
     String bankCode;
+    String redirectUrl; // URL để redirect về Frontend sau khi thanh toán
 }
