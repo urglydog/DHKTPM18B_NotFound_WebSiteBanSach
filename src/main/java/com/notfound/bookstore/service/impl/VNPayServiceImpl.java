@@ -36,6 +36,7 @@ public class VNPayServiceImpl {
     private final VNPayUtil vnPayUtil;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final ShipmentServiceImpl shipmentService;
     private final PaymentMapper paymentMapper;
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final SecureRandom random = new SecureRandom();
@@ -145,6 +146,10 @@ public class VNPayServiceImpl {
             payment.setStatus(PaymentStatus.COMPLETED);
             payment.setDate(LocalDateTime.now());
             payment.setPaymentMethod(String.valueOf(PaymentMethod.VNPay));
+
+            //Thành công sẽ tạo shipment ở bước sau
+            shipmentService.createShipmentOrder(payment.getOrder());
+
         } else {
             payment.setStatus(PaymentStatus.FAILED);
         }

@@ -32,35 +32,21 @@ public class Shipment {
     @Column(name = "carrier", nullable = false)
     String carrier = "GHN";
 
-    @Column(name = "ghn_order_code", unique = true)
+    @Column(name = "ghn_order_code", unique = true, nullable = false)
     String ghnOrderCode;
 
-    @Column(name = "ghn_service_type_id")
-    Integer serviceTypeId;
+    @Column(name = "sorting_code")
+    String sortingCode;
 
-    @Column(name = "ghn_total_fee")
+    @Column(name = "ghn_total_fee", nullable = false)
     Double ghnTotalFee;
 
     @Column(name = "expected_delivery_time")
     LocalDateTime expectedDeliveryTime;
 
-    @Column(name = "sorting_code")
-    String sortingCode;
-
-    @Column(name = "from_name")
-    String fromName;
-
-    @Column(name = "from_phone")
-    String fromPhone;
-
-    @Column(name = "from_address")
-    String fromAddress;
-
-    @Column(name = "from_ward_code")
-    String fromWardCode;
-
-    @Column(name = "from_district_id")
-    Integer fromDistrictId;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    ShipmentStatus status = ShipmentStatus.PENDING;
 
     @Column(name = "to_name")
     String toName;
@@ -75,56 +61,26 @@ public class Shipment {
     String toWardCode;
 
     @Column(name = "to_district_id")
-    Integer toDistrictId;
-
-    // --- TRẠNG THÁI & TRACKING ---
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    ShipmentStatus status = ShipmentStatus.PENDING; // PENDING, READY_TO_PICK, PICKING, DELIVERING, DELIVERED, RETURNED, CANCELLED
+    String toDistrictId;
 
     @Column(name = "cod_amount")
-    Double codAmount; // Số tiền GHN cần thu hộ (COD)
+    Integer codAmount;
 
     @Column(name = "note", columnDefinition = "TEXT")
-    String note; // Ghi chú giao hàng
+    String note;
 
-    @Column(name = "weight")
-    Integer weight;
-
-    @Column(name = "length")
-    Integer length;
-
-    @Column(name = "width")
-    Integer width;
-
-    @Column(name = "height")
-    Integer height;
-
-    @Column(name = "insurance_value")
-    Double insuranceValue; // Giá trị hàng hóa để bảo hiểm
-
-    // --- TRACKING INFORMATION ---
-
-    @Column(name = "tracking_number")
-    String trackingNumber; // Mã vận đơn để khách tra cứu
-
+    // Timestamp cho các trạng thái
     @Column(name = "picked_at")
-    LocalDateTime pickedAt; // Thời gian lấy hàng
+    LocalDateTime pickedAt;
 
     @Column(name = "delivered_at")
-    LocalDateTime deliveredAt; // Thời gian giao hàng thành công
+    LocalDateTime deliveredAt;
 
     @Column(name = "returned_at")
-    LocalDateTime returnedAt; // Thời gian hoàn hàng
+    LocalDateTime returnedAt;
 
     @Column(name = "cancelled_at")
-    LocalDateTime cancelledAt; // Thời gian hủy đơn
-
-    @Column(name = "failure_reason", columnDefinition = "TEXT")
-    String failureReason; // Lý do giao hàng thất bại
-
-    // --- AUDIT ---
+    LocalDateTime cancelledAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -134,17 +90,16 @@ public class Shipment {
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
 
-    // Enum định nghĩa trạng thái vận chuyển
     public enum ShipmentStatus {
-        PENDING,        // Chờ tạo đơn GHN
-        READY_TO_PICK,  // Chờ lấy hàng
-        PICKING,        // Đang lấy hàng
-        PICKED,         // Đã lấy hàng
-        STORING,        // Nhập kho
-        DELIVERING,     // Đang giao
-        DELIVERED,      // Đã giao thành công
-        RETURNED,       // Hoàn hàng
-        CANCELLED,      // Đã hủy
-        EXCEPTION       // Gặp sự cố
+        PENDING,
+        READY_TO_PICK,
+        PICKING,
+        PICKED,
+        STORING,
+        DELIVERING,
+        DELIVERED,
+        RETURNED,
+        CANCELLED,
+        EXCEPTION
     }
 }
