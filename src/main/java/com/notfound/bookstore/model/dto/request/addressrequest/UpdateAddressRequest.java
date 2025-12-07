@@ -41,4 +41,13 @@ public class UpdateAddressRequest {
     @DecimalMin(value = "-180.0", message = "Kinh độ phải từ -180 đến 180")
     @DecimalMax(value = "180.0", message = "Kinh độ phải từ -180 đến 180")
     BigDecimal longitude;
+
+    @NotNull(message = "Mã Phường/Xã theo GHN không được để trống")
+    Integer provinceId; // ID Tỉnh theo GHN (để lọc)
+
+    @NotNull(message = "ID Quận/Huyện theo GHN không được để trống")
+    Integer districtId; // ID Quận/Huyện theo GHN (BẮT BUỘC để tính phí)
+
+    @NotBlank(message = "Mã Phường/Xã theo GHN không được để trống")
+    String wardCode; // Mã Phường/Xã theo GHN (BẮT BUỘC)
 }

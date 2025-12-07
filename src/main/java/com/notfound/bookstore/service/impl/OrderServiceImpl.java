@@ -9,6 +9,7 @@ import com.notfound.bookstore.repository.*;
 import com.notfound.bookstore.service.CartService;
 import com.notfound.bookstore.service.OrderService;
 import com.notfound.bookstore.service.PromotionService;
+import com.notfound.bookstore.service.ShipmentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,12 +29,14 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
-    private final CartService cartService;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final PromotionRepository promotionRepository;
+
+    private final CartService cartService;
     private final PromotionService promotionService;
     private final AddressRepository addressRepository;
+    private final ShipmentService shipmentService;
 
     @Override
     @Transactional
@@ -135,11 +138,14 @@ public class OrderServiceImpl implements OrderService {
                     address.getDistrict(),
                     address.getProvince());
             shippingDetails.setFullAddress(fullAddress);
+
             shippingDetails.setWard(address.getWard());
             shippingDetails.setDistrict(address.getDistrict());
             shippingDetails.setProvince(address.getProvince());
 
             order.setShippingDetails(shippingDetails);
+        }else{
+            throw new RuntimeException("Địa chỉ giao hàng không được để trống");
         }
 
         order = orderRepository.save(order);
@@ -280,6 +286,12 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(OrderStatus.CANCELLED);
         order = orderRepository.save(order);
+
+        // Hủy đơn vận chuyển nếu đã tạo
+        Shipment shipment = order.getShipment();
+        if (shipment != null){
+            shipmentService.cancelShipmentOrder(shipment.getGhnOrderCode());
+        }
 
         Double subtotal = orderItems.stream().mapToDouble(OrderItem::getSubtotal).sum();
         return buildOrderResponse(order, orderItems, order.getPromotion(),
