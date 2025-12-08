@@ -313,6 +313,7 @@ public class AuthController {
                 .code(1000)
                 .message("Lấy thông tin user thành công")
                 .result(userResponse)
+                .build();
     }
 
     /**
