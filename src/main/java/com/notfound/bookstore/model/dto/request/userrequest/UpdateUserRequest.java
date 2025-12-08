@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,4 +23,6 @@ public class UpdateUserRequest {
 
     @Pattern(regexp = "^(Male|Female|Other)$")
     String gender;
+
+    LocalDate dateOfBirth;
 }
