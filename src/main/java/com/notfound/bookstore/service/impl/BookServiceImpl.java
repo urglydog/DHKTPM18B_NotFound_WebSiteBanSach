@@ -177,4 +177,14 @@ public class BookServiceImpl implements BookService {
                 .map(bookMapper::toBookSummaryResponse)
                 .collect(Collectors.toList());
     }
+
+    // Lấy danh sách sách gợi ý cho bạn
+    @Override
+    public List<BookSummaryResponse> getSuggestedBooks(Integer limit) {
+        Pageable pageable = PageRequest.of(0, limit != null ? limit : 10);
+        List<Book> books = bookRepository.findRandomBooks(pageable);
+        return books.stream()
+                .map(bookMapper::toBookSummaryResponse)
+                .collect(Collectors.toList());
+    }
 }

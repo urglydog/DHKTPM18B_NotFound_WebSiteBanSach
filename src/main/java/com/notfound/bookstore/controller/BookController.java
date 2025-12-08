@@ -90,4 +90,14 @@ public class BookController {
                                 .result(bookService.getBestSellingBooks(limit))
                                 .build();
         }
+
+        @GetMapping("/suggested")
+        public ApiResponse<List<BookSummaryResponse>> getSuggestedBooks(
+                        @RequestParam(required = false, defaultValue = "10") Integer limit) {
+                return ApiResponse.<List<BookSummaryResponse>>builder()
+                                .code(1000)
+                                .message("Lấy danh sách sách gợi ý thành công")
+                                .result(bookService.getSuggestedBooks(limit))
+                                .build();
+        }
 }

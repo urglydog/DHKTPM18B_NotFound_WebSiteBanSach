@@ -28,4 +28,7 @@ public interface BookService {
 
     // Lấy danh sách sách bán chạy nhất
     List<BookSummaryResponse> getBestSellingBooks(Integer limit);
+
+    // Lấy danh sách sách gợi ý cho bạn
+    List<BookSummaryResponse> getSuggestedBooks(Integer limit);
 }
