@@ -83,9 +83,6 @@ public class AdminController {
                 .build();
     }
 
-    /**
-     *  DƯ VÌ LẤY THÔNG TIN SÁCH NẰM Ở BOOKCONTROLLER
-     */
     @GetMapping("/books/{bookId}")
     public ApiResponse<BookFullDetailResponse> getBookDetail(@PathVariable UUID bookId) {
         BookFullDetailResponse response = adminService.getBookDetail(bookId);

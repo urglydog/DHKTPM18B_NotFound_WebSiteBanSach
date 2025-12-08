@@ -11,7 +11,9 @@ import com.notfound.bookstore.model.dto.response.categoryresponse.CategoryRespon
 import com.notfound.bookstore.model.entity.*;
 import com.notfound.bookstore.repository.*;
 import com.notfound.bookstore.service.AdminService;
+import com.notfound.bookstore.service.GeminiService;
 import com.notfound.bookstore.service.ImageService;
+import com.notfound.bookstore.service.QdrantService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -42,6 +44,8 @@ public class AdminServiceImpl implements AdminService {
     ReviewRepository reviewRepository;
     OrderItemRepository orderItemRepository;
     ImageService imageService;
+    GeminiService geminiService;
+    QdrantService qdrantService;
 
     @Override
     public BookFullDetailResponse createBook(CreateBookRequest request) {
@@ -81,6 +85,24 @@ public class AdminServiceImpl implements AdminService {
 
         book = bookRepository.save(book);
         log.info("Book created successfully: {}", book.getId());
+
+        // Gộp nội dung để tạo embedding
+        String embeddingText = book.getTitle() + ". " + (book.getDescription() != null ? book.getDescription() : "");
+
+        log.info("Creating embedding for book: {} with text: {}", book.getId(), embeddingText);
+
+        try {
+            // Gửi sang Gemini để lấy VECTOR
+            double[] vector = geminiService.embed(embeddingText);
+            log.info("Gemini embedding created, vector size: {}", vector.length);
+
+            // Lưu VECTOR vào Qdrant
+            qdrantService.insertBookVector(book.getId(), vector, book);
+            log.info("Successfully inserted vector to Qdrant for book: {}", book.getId());
+
+        } catch (Exception e) {
+            log.error("Failed to create/insert vector for book {}: {}", book.getId(), e.getMessage(), e);
+        }
 
         return mapToBookFullDetailResponse(book);
     }
