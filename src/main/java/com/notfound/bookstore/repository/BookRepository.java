@@ -5,6 +5,7 @@ import com.notfound.bookstore.model.entity.Book;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -118,6 +119,22 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
 
     // Sắp xếp theo tên sách (Z → A)
     Page<Book> findAllByOrderByTitleDesc(Pageable pageable);
+
+    /**
+     * Atomic update to decrease stock quantity - prevents race condition
+     * Returns number of rows updated (1 if successful, 0 if failed due to insufficient stock)
+     */
+    @Modifying
+    @Query("UPDATE Book b SET b.stockQuantity = b.stockQuantity - :quantity " +
+           "WHERE b.id = :bookId AND b.stockQuantity >= :quantity")
+    int decreaseStockQuantity(@Param("bookId") UUID bookId, @Param("quantity") Integer quantity);
+
+    /**
+     * Atomic update to increase stock quantity (for cancel/return orders)
+     */
+    @Modifying
+    @Query("UPDATE Book b SET b.stockQuantity = b.stockQuantity + :quantity WHERE b.id = :bookId")
+    int increaseStockQuantity(@Param("bookId") UUID bookId, @Param("quantity") Integer quantity);
 
     // Sắp xếp theo đánh giá trung bình giảm dần (cao → thấp)
     @Query("SELECT b FROM Book b LEFT JOIN b.reviews r GROUP BY b.id ORDER BY AVG(r.rating) DESC")
