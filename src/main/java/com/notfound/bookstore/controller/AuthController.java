@@ -54,8 +54,10 @@ public class AuthController {
     /**
      * Đăng ký tài khoản mới
      *
-     * @param request Thông tin đăng ký bao gồm username, email, mật khẩu và các thông tin cá nhân
-     * @return Thông tin xác thực sau khi đăng ký thành công (token và thông tin user)
+     * @param request Thông tin đăng ký bao gồm username, email, mật khẩu và các
+     *                thông tin cá nhân
+     * @return Thông tin xác thực sau khi đăng ký thành công (token và thông tin
+     *         user)
      */
     @PostMapping("/register")
     public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -71,7 +73,8 @@ public class AuthController {
      * Đăng nhập vào hệ thống
      *
      * @param request Thông tin đăng nhập (email và mật khẩu)
-     * @return Thông tin xác thực sau khi đăng nhập thành công (token và thông tin user)
+     * @return Thông tin xác thực sau khi đăng nhập thành công (token và thông tin
+     *         user)
      */
     @PostMapping("/login")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -84,7 +87,8 @@ public class AuthController {
     }
 
     @PutMapping("/change-password")
-    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request, Authentication authentication) {
+    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
@@ -135,7 +139,8 @@ public class AuthController {
      * Xác thực OTP và đặt lại mật khẩu mới
      * Người dùng chỉ được nhập sai OTP tối đa 5 lần
      *
-     * @param request Thông tin bao gồm email, OTP, mật khẩu mới và xác nhận mật khẩu
+     * @param request Thông tin bao gồm email, OTP, mật khẩu mới và xác nhận mật
+     *                khẩu
      * @return Kết quả đặt lại mật khẩu
      */
     @PostMapping("/verify-otp")
@@ -272,9 +277,10 @@ public class AuthController {
             // Frontend sẽ tự gọi /api/user/me để lấy user info
             StringBuilder redirectUrl = new StringBuilder("http://localhost:3000/?");
             redirectUrl.append("token=").append(URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
-            
+
             if (authResponse.getRefreshToken() != null) {
-                redirectUrl.append("&refreshToken=").append(URLEncoder.encode(authResponse.getRefreshToken(), StandardCharsets.UTF_8));
+                redirectUrl.append("&refreshToken=")
+                        .append(URLEncoder.encode(authResponse.getRefreshToken(), StandardCharsets.UTF_8));
             }
 
             response.sendRedirect(redirectUrl.toString());
@@ -305,14 +311,15 @@ public class AuthController {
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     public ApiResponse<UserResponse> getCurrentUserAlias() {
         log.warn("GET /api/auth/me - Using deprecated endpoint. Please use /api/user/me instead");
-        
+
         var currentUser = securityUtils.getCurrentUser();
         UserResponse userResponse = userMapper.toUserResponse(currentUser);
-        
+
         return ApiResponse.<UserResponse>builder()
                 .code(1000)
                 .message("Lấy thông tin user thành công")
-                .result(userResponse).build();
+                .result(userResponse)
+                .build();
     }
 
     /**
