@@ -83,9 +83,6 @@ public class AdminController {
                 .build();
     }
 
-    /**
-     *  DƯ VÌ LẤY THÔNG TIN SÁCH NẰM Ở BOOKCONTROLLER
-     */
     @GetMapping("/books/{bookId}")
     public ApiResponse<BookFullDetailResponse> getBookDetail(@PathVariable UUID bookId) {
         BookFullDetailResponse response = adminService.getBookDetail(bookId);
@@ -238,6 +235,22 @@ public class AdminController {
                 .code(1000)
                 .message("Lấy danh sách thể loại thành công")
                 .result(response)
+                .build();
+    }
+
+    /**
+     * Upload avatar for user
+     *
+     * @param image Avatar image file
+     * @return Cloudinary URL of uploaded image
+     */
+    @PostMapping("/upload/avatar")
+    public ApiResponse<String> uploadAvatar(@RequestParam("image") MultipartFile image) {
+        String avatarUrl = adminService.uploadAvatar(image);
+        return ApiResponse.<String>builder()
+                .code(1000)
+                .message("Upload avatar thành công")
+                .result(avatarUrl)
                 .build();
     }
 }

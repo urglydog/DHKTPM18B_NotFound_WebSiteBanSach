@@ -19,12 +19,11 @@ public class UserResponse {
     String fullName;
     String phoneNumber;
     String role;
-    Boolean emailVerified;
-    String avatarUrl;
+    String status;
     LocalDate dateOfBirth;
-    String gender;
-    LocalDateTime lastLogin;
-    String membershipTier;
     Integer points;
-    String providerId;
+    String membershipTier;
+    Boolean isEmailVerified;
+    String authProvider;
+    LocalDateTime lastLogin;
 }

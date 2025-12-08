@@ -11,6 +11,9 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface AddressMapper {
 
+    @Mapping(source = "provinceId", target = "provinceId")
+    @Mapping(source = "districtId", target = "districtId")
+    @Mapping(source = "wardCode", target = "wardCode")
    AddressResponse toAddressResponse(Address address);
 
    List<AddressResponse> toAddressResponseList(List<Address> addresses);

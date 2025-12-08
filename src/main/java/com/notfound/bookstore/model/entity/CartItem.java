@@ -42,6 +42,10 @@ public class CartItem {
     }
 
     public double getSubTotal(){
-        return book.getPrice() * quantity;
+        // Use discount price if available, otherwise use regular price
+        Double price = (book.getDiscountPrice() != null && book.getDiscountPrice() > 0) 
+                ? book.getDiscountPrice() 
+                : book.getPrice();
+        return price * quantity;
     }
 }

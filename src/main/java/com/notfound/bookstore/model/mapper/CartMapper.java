@@ -4,32 +4,36 @@ import com.notfound.bookstore.model.dto.response.cartresponse.CartItemResponse;
 import com.notfound.bookstore.model.dto.response.cartresponse.CartResponse;
 import com.notfound.bookstore.model.entity.Cart;
 import com.notfound.bookstore.model.entity.CartItem;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Component
-public class CartMapper {
+@Mapper(componentModel = "spring")
+public interface CartMapper {
 
-    public CartItemResponse toCartItemResponse(CartItem cartItem) {
-        return CartItemResponse.builder()
-                .itemId(cartItem.getItemID())
-                .bookId(cartItem.getBook().getId())
-                .bookTitle(cartItem.getBook().getTitle())
-                .bookIsbn(cartItem.getBook().getIsbn())
-                .bookPrice(cartItem.getBook().getPrice())
-                .bookDiscountPrice(cartItem.getBook().getDiscountPrice())
-                .bookImageUrl(cartItem.getBook().getImages() != null && !cartItem.getBook().getImages().isEmpty()
-                    ? cartItem.getBook().getImages().get(0).getUrl()
-                    : null)
-                .quantity(cartItem.getQuantity())
-                .subTotal(cartItem.getSubTotal())
-                .stockQuantity(cartItem.getBook().getStockQuantity())
-                .build();
+    @Mapping(target = "itemId", source = "itemID")
+    @Mapping(target = "bookId", source = "book.id")
+    @Mapping(target = "bookTitle", source = "book.title")
+    @Mapping(target = "bookIsbn", source = "book.isbn")
+    @Mapping(target = "bookPrice", source = "book.price")
+    @Mapping(target = "bookDiscountPrice", source = "book.discountPrice")
+    @Mapping(target = "bookImageUrl", source = "book", qualifiedByName = "getBookImageUrl")
+    @Mapping(target = "quantity", source = "quantity")
+    @Mapping(target = "subTotal", source = "subTotal")
+    @Mapping(target = "stockQuantity", source = "book.stockQuantity")
+    CartItemResponse toCartItemResponse(CartItem cartItem);
+
+    @Named("getBookImageUrl")
+    default String getBookImageUrl(com.notfound.bookstore.model.entity.Book book) {
+        return book.getImages() != null && !book.getImages().isEmpty()
+                ? book.getImages().get(0).getUrl()
+                : null;
     }
 
-    public CartResponse toCartResponse(Cart cart, List<CartItem> items) {
+    default CartResponse toCartResponse(Cart cart, List<CartItem> items) {
         List<CartItemResponse> itemResponses = items.stream()
                 .map(this::toCartItemResponse)
                 .collect(Collectors.toList());

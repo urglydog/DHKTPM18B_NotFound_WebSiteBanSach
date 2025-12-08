@@ -29,6 +29,7 @@ public enum ErrorCode {
     ERROR_ENCODE(HttpStatus.INTERNAL_SERVER_ERROR, 3005, "Error encoding URL parameters."),
     ERROR_CREATE_HMACSHA512(HttpStatus.INTERNAL_SERVER_ERROR, 3000, "Error creating HMAC-SHA512 signature."),
     INVALID_PAYMENT_SIGNATURE(HttpStatus.BAD_REQUEST, 3001, "Invalid Payment signature."),
+    INVALID_PAYMENT_CALLBACK(HttpStatus.BAD_REQUEST, 3006, "Invalid payment callback data."),
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, 3002, "Payment amount mismatch."),
     PAYMENT_TRANSACTION_FAILED(HttpStatus.BAD_REQUEST, 3003, "Payment transaction failed."),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, 3004, "Payment not found"),
@@ -48,6 +49,8 @@ public enum ErrorCode {
 
     // ==== Lỗi xác thực/người dùng (nhánh con của 4xx) ====
     USER_EXISTED(HttpStatus.CONFLICT, 2001, "User already exists."),
+    USERNAME_EXISTED(HttpStatus.CONFLICT, 2013, "Tên đăng nhập đã tồn tại."),
+    EMAIL_EXISTED(HttpStatus.CONFLICT, 2014, "Email đã tồn tại."),
     MAIL_NOT_EXISTED(HttpStatus.NOT_FOUND, 2003, "Mail not exists"),
     TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, 4290, "OTP chưa hết hạn, vui lòng thử lại sau."),
     USER_NOT_EXISTED(HttpStatus.NOT_FOUND, 2002, "User not found."),
@@ -79,6 +82,11 @@ public enum ErrorCode {
     USER_HAS_ORDERS(HttpStatus.CONFLICT, 2010, "Cannot delete user with existing orders."),
     CANNOT_DELETE_ADMIN(HttpStatus.FORBIDDEN, 2011, "Cannot delete admin user."),
     CANNOT_BAN_ADMIN(HttpStatus.FORBIDDEN, 2012, "Cannot ban admin user."),
+
+    // ==== Lỗi Danh Sách Yêu Thích (Wishlist) ====
+    BOOK_ALREADY_IN_WISHLIST(HttpStatus.FORBIDDEN,4001, "Book already in wishlist"),
+    BOOK_NOT_IN_WISHLIST(HttpStatus.FORBIDDEN, 4002, "Book not in wishlist"),
+    WISHLIST_EMPTY(HttpStatus.FORBIDDEN,4003, "Wishlist is empty"),
 
     // ==== Lỗi Vận chuyển (Shipment) ====
     SHIPMENT_NOT_FOUND(HttpStatus.NOT_FOUND, 7001, "Shipment not found."),

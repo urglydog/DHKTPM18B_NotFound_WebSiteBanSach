@@ -125,6 +125,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.getEmail())
                 .fullName(request.getFullName())
                 .phoneNumber(request.getPhoneNumber())
+                .dateOfBirth(request.getDateOfBirth())
                 .role(Role.CUSTOMER) // Mặc định là CUSTOMER
                 .build();
 
