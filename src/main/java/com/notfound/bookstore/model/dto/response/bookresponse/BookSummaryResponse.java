@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.dto.response.bookresponse;
 
+import com.notfound.bookstore.model.entity.Book;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -20,6 +21,7 @@ public class BookSummaryResponse {
     Double averageRating;
     Integer reviewCount;
     Integer stockQuantity;
+    Book.Status status;
     List<String> authorNames;
     List<String> categoryId;
 }

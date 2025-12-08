@@ -20,12 +20,15 @@ public class BookFullDetailResponse {
     String isbn;
     Double price;
     Double discountPrice;
+    Double importPrice;
     Integer stockQuantity;
     LocalDate publishDate;
     String description;
     Book.Status status;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
+    String createdBy;
+    String updatedBy;
 
     List<AuthorInfo> authors;
     List<CategoryInfo> categories;
