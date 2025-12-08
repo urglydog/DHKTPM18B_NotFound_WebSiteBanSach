@@ -17,4 +17,6 @@ public interface AuthService {
     AuthResponse handleGoogleOAuthCallback(String code);
 
     void changePassword(String username, ChangePasswordRequest request);
+
+    AuthResponse refreshToken(String refreshToken);
 }
