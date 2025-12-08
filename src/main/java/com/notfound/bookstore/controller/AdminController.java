@@ -74,7 +74,7 @@ public class AdminController {
      * @param bookId ID của sách cần xóa
      * @return Kết quả xóa sách
      */
-    @DeleteMapping("/books/{bookId}")
+    @DeleteMapping("/books/{bookId:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}")
     public ApiResponse<Void> deleteBook(@PathVariable UUID bookId) {
         adminService.deleteBook(bookId);
         return ApiResponse.<Void>builder()
@@ -83,10 +83,7 @@ public class AdminController {
                 .build();
     }
 
-    /**
-     *  DƯ VÌ LẤY THÔNG TIN SÁCH NẰM Ở BOOKCONTROLLER
-     */
-    @GetMapping("/books/{bookId}")
+    @GetMapping("/books/{bookId:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}")
     public ApiResponse<BookFullDetailResponse> getBookDetail(@PathVariable UUID bookId) {
         BookFullDetailResponse response = adminService.getBookDetail(bookId);
         return ApiResponse.<BookFullDetailResponse>builder()
@@ -119,7 +116,7 @@ public class AdminController {
      * @param images Danh sách file ảnh cần upload
      * @return Thông tin chi tiết của sách sau khi upload ảnh
      */
-    @PostMapping("/books/{bookId}/images")
+    @PostMapping("/books/{bookId:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}/images")
     public ApiResponse<BookFullDetailResponse> uploadBookImages(
             @PathVariable UUID bookId,
             @RequestParam("images") List<MultipartFile> images) {
@@ -138,7 +135,7 @@ public class AdminController {
      * @param imageId ID của ảnh cần xóa
      * @return Kết quả xóa ảnh
      */
-    @DeleteMapping("/books/{bookId}/images/{imageId}")
+    @DeleteMapping("/books/{bookId:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}/images/{imageId}")
     public ApiResponse<Void> deleteBookImage(
             @PathVariable UUID bookId,
             @PathVariable Long imageId) {
