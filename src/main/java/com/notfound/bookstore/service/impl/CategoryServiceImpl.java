@@ -39,7 +39,7 @@ public class CategoryServiceImpl implements CategoryService {
         log.info("Fetching all categories");
         List<Category> categories = categoryRepository.findAll();
         log.info("Found {} categories", categories.size());
-        
+
         return categories.stream()
                 .map(this::mapToCategoryResponse)
                 .collect(Collectors.toList());
@@ -48,11 +48,24 @@ public class CategoryServiceImpl implements CategoryService {
     // Lấy tất cả các Category với phân trang
     @Override
     public Page<CategoryResponse> getAllCategories(Pageable pageable) {
-        log.info("Fetching categories with pagination - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+        log.info("Fetching categories with pagination - page: {}, size: {}", pageable.getPageNumber(),
+                pageable.getPageSize());
         Page<Category> categoryPage = categoryRepository.findAll(pageable);
         log.info("Found {} categories on page {}", categoryPage.getNumberOfElements(), pageable.getPageNumber());
-        
+
         return categoryPage.map(this::mapToCategoryResponse);
+    }
+
+    // Lấy danh sách danh mục phổ biến
+    @Override
+    @org.springframework.cache.annotation.Cacheable(value = "popular_categories", key = "#limit")
+    public List<CategoryResponse> getPopularCategories(Integer limit) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0,
+                limit != null ? limit : 5);
+        List<Category> categories = categoryRepository.findPopularCategories(pageable);
+        return categories.stream()
+                .map(this::mapToCategoryResponse)
+                .collect(Collectors.toList());
     }
 
     private CategoryResponse mapToCategoryResponse(Category category) {
@@ -63,10 +76,9 @@ public class CategoryServiceImpl implements CategoryService {
 
         if (category.getParentCategory() != null) {
             builder.parentCategoryId(category.getParentCategory().getId())
-                   .parentCategoryName(category.getParentCategory().getName());
+                    .parentCategoryName(category.getParentCategory().getName());
         }
 
         return builder.build();
     }
 }
-

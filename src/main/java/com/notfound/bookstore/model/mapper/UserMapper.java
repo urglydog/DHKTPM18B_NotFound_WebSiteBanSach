@@ -14,6 +14,13 @@ public interface UserMapper {
     @Mapping(source = "fullName", target = "fullName")
     @Mapping(source = "phoneNumber", target = "phoneNumber")
     @Mapping(source = "role", target = "role")
+    @Mapping(source = "status", target = "status")
+    @Mapping(source = "dateOfBirth", target = "dateOfBirth")
+    @Mapping(source = "points", target = "points")
+    @Mapping(source = "membershipTier", target = "membershipTier")
     @Mapping(source = "isEmailVerified", target = "isEmailVerified")
+    @Mapping(source = "authProvider", target = "authProvider")
+    @Mapping(source = "lastLogin", target = "lastLogin")
+    @Mapping(source = "avatar_url", target = "avatar")
     UserResponse toUserResponse(User user);
 }

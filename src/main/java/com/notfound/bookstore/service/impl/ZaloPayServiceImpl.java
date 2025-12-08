@@ -32,7 +32,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ZaloPayServiceImpl {
+public class ZaloPayServiceImpl implements com.notfound.bookstore.service.ZaloPayService {
 
     private final ZaloPayUtil zaloPay;
     private final ObjectMapper objectMapper;
@@ -42,6 +42,7 @@ public class ZaloPayServiceImpl {
     private final PaymentMapper paymentMapper;
 
     @Transactional
+    @Override
     public CreatePaymentResponse createOrderTransaction(PaymentRequest body) {
         Order order = orderRepository.findById(body.getOrderId())
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
@@ -108,6 +109,7 @@ public class ZaloPayServiceImpl {
         }
     }
 
+    @Override
     public ZaloPayCallBackResponseDTO processCallback(ZaloPayCallbackRequest body) {
         String reqMac = HMACUtil.HMacHexStringEncode(HMACUtil.HMACSHA256, properties.getZap_Key2(), body.getData());
         if (reqMac != null && reqMac.equals(body.getMac())) {

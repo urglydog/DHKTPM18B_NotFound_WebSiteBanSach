@@ -10,11 +10,13 @@ import java.util.UUID;
 public interface CategoryService {
     // Lấy category theo ID
     CategoryResponse getCategory(UUID categoryId);
-    
+
     // Lấy tất cả các Category
     List<CategoryResponse> getAllCategories();
-    
+
     // Lấy tất cả các Category với phân trang
     Page<CategoryResponse> getAllCategories(Pageable pageable);
-}
 
+    // Lấy danh sách danh mục phổ biến
+    List<CategoryResponse> getPopularCategories(Integer limit);
+}

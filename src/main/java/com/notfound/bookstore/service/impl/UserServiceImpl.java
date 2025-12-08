@@ -28,6 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.io.ByteArrayOutputStream;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -114,12 +117,14 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
 
         // Validate username không trùng
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+            log.warn("Username already exists: {}", request.getUsername());
+            throw new AppException(ErrorCode.USERNAME_EXISTED);
         }
 
         // Validate email không trùng
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+            log.warn("Email already exists: {}", request.getEmail());
+            throw new AppException(ErrorCode.EMAIL_EXISTED);
         }
 
         // Create user entity
@@ -131,6 +136,7 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                 .phoneNumber(request.getPhoneNumber())
                 .gender(request.getGender())
                 .avatar_url(request.getAvatarUrl())
+                .dateOfBirth(request.getDateOfBirth())
                 .role(request.getRole() != null ? Role.valueOf(request.getRole()) : Role.CUSTOMER)
                 .status("active") // Default status
                 .build();
@@ -165,6 +171,9 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
         }
         if (request.getGender() != null) {
             user.setGender(request.getGender());
+        }
+        if (request.getDateOfBirth() != null) {
+            user.setDateOfBirth(request.getDateOfBirth());
         }
 
         User updatedUser = userRepository.save(user);
@@ -343,8 +352,189 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
 
     @Override
     public byte[] exportUsersToExcel() {
-        // TODO: Implement Excel export using Apache POI
-        throw new UnsupportedOperationException("Export to Excel not implemented yet");
+        try {
+            log.info("Exporting all users to Excel...");
+            
+            // Get all users
+            List<User> users = userRepository.findAll();
+            
+            // Create workbook and sheet
+            Workbook workbook = new XSSFWorkbook();
+            Sheet sheet = workbook.createSheet("Danh Sách Người Dùng");
+            
+            // Create header style
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setFontHeightInPoints((short) 12);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setBorderBottom(BorderStyle.THIN);
+            headerStyle.setBorderTop(BorderStyle.THIN);
+            headerStyle.setBorderLeft(BorderStyle.THIN);
+            headerStyle.setBorderRight(BorderStyle.THIN);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+            
+            // Create data style
+            CellStyle dataStyle = workbook.createCellStyle();
+            dataStyle.setBorderBottom(BorderStyle.THIN);
+            dataStyle.setBorderTop(BorderStyle.THIN);
+            dataStyle.setBorderLeft(BorderStyle.THIN);
+            dataStyle.setBorderRight(BorderStyle.THIN);
+            dataStyle.setWrapText(true);
+            
+            // Create header row
+            Row headerRow = sheet.createRow(0);
+            String[] columns = {
+                "STT", "Tên đăng nhập", "Email", "Họ và tên", "Số điện thoại", 
+                "Vai trò", "Trạng thái", "Ngày sinh", "Điểm", "Hạng thành viên",
+                "Email xác thực", "Tổng đơn hàng", "Tổng chi tiêu", "Ngày tạo", "Đăng nhập gần nhất"
+            };
+            
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+            
+            // Create date format
+            CellStyle dateStyle = workbook.createCellStyle();
+            dateStyle.cloneStyleFrom(dataStyle);
+            CreationHelper createHelper = workbook.getCreationHelper();
+            dateStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd/MM/yyyy HH:mm"));
+            
+            // Create currency format
+            CellStyle currencyStyle = workbook.createCellStyle();
+            currencyStyle.cloneStyleFrom(dataStyle);
+            currencyStyle.setDataFormat(createHelper.createDataFormat().getFormat("#,##0 ₫"));
+            
+            // Fill data rows
+            int rowNum = 1;
+            for (User user : users) {
+                Row row = sheet.createRow(rowNum++);
+                
+                // Calculate totals
+                int totalOrders = user.getOrders() != null ? user.getOrders().size() : 0;
+                BigDecimal totalSpent = user.getOrders() != null 
+                    ? user.getOrders().stream()
+                        .map(Order::getTotalAmount)
+                        .map(amount -> amount != null ? BigDecimal.valueOf(amount) : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    : BigDecimal.ZERO;
+                
+                // STT
+                Cell cell0 = row.createCell(0);
+                cell0.setCellValue(rowNum - 1);
+                cell0.setCellStyle(dataStyle);
+                
+                // Username
+                Cell cell1 = row.createCell(1);
+                cell1.setCellValue(user.getUsername() != null ? user.getUsername() : "");
+                cell1.setCellStyle(dataStyle);
+                
+                // Email
+                Cell cell2 = row.createCell(2);
+                cell2.setCellValue(user.getEmail() != null ? user.getEmail() : "");
+                cell2.setCellStyle(dataStyle);
+                
+                // Full name
+                Cell cell3 = row.createCell(3);
+                cell3.setCellValue(user.getFullName() != null ? user.getFullName() : "");
+                cell3.setCellStyle(dataStyle);
+                
+                // Phone number
+                Cell cell4 = row.createCell(4);
+                cell4.setCellValue(user.getPhoneNumber() != null ? user.getPhoneNumber() : "");
+                cell4.setCellStyle(dataStyle);
+                
+                // Role
+                Cell cell5 = row.createCell(5);
+                cell5.setCellValue(user.getRole() != null ? user.getRole().name() : "");
+                cell5.setCellStyle(dataStyle);
+                
+                // Status
+                Cell cell6 = row.createCell(6);
+                cell6.setCellValue(user.getStatus() != null ? user.getStatus() : "active");
+                cell6.setCellStyle(dataStyle);
+                
+                // Date of birth
+                Cell cell7 = row.createCell(7);
+                if (user.getDateOfBirth() != null) {
+                    cell7.setCellValue(java.sql.Date.valueOf(user.getDateOfBirth()));
+                    cell7.setCellStyle(dateStyle);
+                } else {
+                    cell7.setCellValue("");
+                    cell7.setCellStyle(dataStyle);
+                }
+                
+                // Points
+                Cell cell8 = row.createCell(8);
+                cell8.setCellValue(user.getPoints() != null ? user.getPoints() : 0);
+                cell8.setCellStyle(dataStyle);
+                
+                // Membership tier
+                Cell cell9 = row.createCell(9);
+                cell9.setCellValue(user.getMembershipTier() != null ? user.getMembershipTier().name() : "");
+                cell9.setCellStyle(dataStyle);
+                
+                // Email verified
+                Cell cell10 = row.createCell(10);
+                cell10.setCellValue(user.getIsEmailVerified() != null && user.getIsEmailVerified() ? "Đã xác thực" : "Chưa xác thực");
+                cell10.setCellStyle(dataStyle);
+                
+                // Total orders
+                Cell cell11 = row.createCell(11);
+                cell11.setCellValue(totalOrders);
+                cell11.setCellStyle(dataStyle);
+                
+                // Total spent
+                Cell cell12 = row.createCell(12);
+                cell12.setCellValue(totalSpent.doubleValue());
+                cell12.setCellStyle(currencyStyle);
+                
+                // Created at
+                Cell cell13 = row.createCell(13);
+                if (user.getCreatedAt() != null) {
+                    cell13.setCellValue(java.sql.Timestamp.valueOf(user.getCreatedAt()));
+                    cell13.setCellStyle(dateStyle);
+                } else {
+                    cell13.setCellValue("");
+                    cell13.setCellStyle(dataStyle);
+                }
+                
+                // Last login
+                Cell cell14 = row.createCell(14);
+                if (user.getLastLogin() != null) {
+                    cell14.setCellValue(java.sql.Timestamp.valueOf(user.getLastLogin()));
+                    cell14.setCellStyle(dateStyle);
+                } else {
+                    cell14.setCellValue("");
+                    cell14.setCellStyle(dataStyle);
+                }
+            }
+            
+            // Auto-size columns
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+                // Add some extra width
+                sheet.setColumnWidth(i, sheet.getColumnWidth(i) + 1000);
+            }
+            
+            // Write to byte array
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            workbook.close();
+            
+            byte[] excelData = outputStream.toByteArray();
+            log.info("Exported {} users to Excel successfully. File size: {} bytes", users.size(), excelData.length);
+            
+            return excelData;
+            
+        } catch (Exception e) {
+            log.error("Error exporting users to Excel: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to export users to Excel: " + e.getMessage(), e);
+        }
     }
 
     // ===== MAPPING METHODS =====
@@ -367,6 +557,12 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                 .avatarUrl(user.getAvatar_url())
                 .role(user.getRole().name())
                 .status(user.getStatus() != null ? user.getStatus() : "active")
+                .dateOfBirth(user.getDateOfBirth())
+                .points(user.getPoints())
+                .membershipTier(user.getMembershipTier() != null ? user.getMembershipTier().name() : null)
+                .isEmailVerified(user.getIsEmailVerified())
+                .createdAt(user.getCreatedAt())
+                .lastLogin(user.getLastLogin())
                 .totalOrders(totalOrders)
                 .totalSpent(totalSpent)
                 .build();
@@ -399,10 +595,19 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                 .avatarUrl(user.getAvatar_url())
                 .role(user.getRole().name())
                 .status(user.getStatus() != null ? user.getStatus() : "active")
+                .dateOfBirth(user.getDateOfBirth())
+                .points(user.getPoints())
+                .membershipTier(user.getMembershipTier() != null ? user.getMembershipTier().name() : null)
+                .isEmailVerified(user.getIsEmailVerified())
+                .authProvider(user.getAuthProvider() != null ? user.getAuthProvider().name() : null)
+                .providerId(user.getProviderId())
                 .totalOrders(totalOrders)
                 .totalSpent(totalSpent)
                 .totalReviews(totalReviews)
                 .lastOrderDate(lastOrderDate)
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .lastLoginAt(user.getLastLogin())
                 .build();
     }
 
@@ -414,6 +619,13 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole().name())
+                .status(user.getStatus() != null ? user.getStatus() : "active")
+                .dateOfBirth(user.getDateOfBirth())
+                .points(user.getPoints())
+                .membershipTier(user.getMembershipTier() != null ? user.getMembershipTier().name() : null)
+                .isEmailVerified(user.getIsEmailVerified())
+                .authProvider(user.getAuthProvider() != null ? user.getAuthProvider().name() : null)
+                .lastLogin(user.getLastLogin())
                 .build();
     }
 

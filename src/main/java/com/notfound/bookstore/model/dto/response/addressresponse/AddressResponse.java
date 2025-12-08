@@ -1,5 +1,7 @@
 package com.notfound.bookstore.model.dto.response.addressresponse;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -24,4 +26,7 @@ public class AddressResponse {
     String province;
     BigDecimal latitude;
     BigDecimal longitude;
+    Integer provinceId;
+    Integer districtId;
+    String wardCode;
 }

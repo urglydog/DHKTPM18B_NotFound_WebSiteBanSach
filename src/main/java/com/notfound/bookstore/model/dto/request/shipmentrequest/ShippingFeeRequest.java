@@ -8,6 +8,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ShippingFeeRequest {
 
@@ -20,11 +21,8 @@ public class ShippingFeeRequest {
     @Builder.Default
     Integer width = 15;
 
-    @Builder.Default
-    Integer height = 2;
-
-    @Builder.Default
-    Integer weight = 300;
+    Integer height;
+    Integer weight;
 
     @Builder.Default
     Integer insuranceValue = 0;

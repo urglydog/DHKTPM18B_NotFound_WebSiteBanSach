@@ -4,6 +4,8 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -27,4 +29,6 @@ public class RegisterRequest {
     // Phone number is optional, only validate format if provided
     @Pattern(regexp = "^(\\+84|0)[0-9]{9}$", message = "Invalid phone number")
     String phoneNumber;
+
+    LocalDate dateOfBirth;
 }
