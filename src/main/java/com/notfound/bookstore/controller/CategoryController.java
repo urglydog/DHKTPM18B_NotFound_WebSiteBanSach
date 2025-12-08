@@ -80,5 +80,20 @@ public class CategoryController {
                 .build();
     }
 
-}
+    /**
+     * Lấy danh sách thể loại phổ biến
+     *
+     * @param limit Số lượng thể loại muốn lấy (mặc định: 5)
+     * @return Danh sách thể loại phổ biến
+     */
+    @GetMapping("/popular")
+    public ApiResponse<List<CategoryResponse>> getPopularCategories(
+            @RequestParam(required = false, defaultValue = "5") Integer limit) {
+        return ApiResponse.<List<CategoryResponse>>builder()
+                .code(1000)
+                .message("Lấy danh sách thể loại phổ biến thành công")
+                .result(categoryService.getPopularCategories(limit))
+                .build();
+    }
 
+}

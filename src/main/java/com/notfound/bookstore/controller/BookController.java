@@ -7,6 +7,7 @@ import com.notfound.bookstore.model.dto.response.ApiResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.BookResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.BookSummaryResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.PageResponse;
+import com.notfound.bookstore.model.dto.response.categoryresponse.CategoryBooksResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -98,6 +99,17 @@ public class BookController {
                                 .code(1000)
                                 .message("Lấy danh sách sách gợi ý thành công")
                                 .result(bookService.getSuggestedBooks(limit))
+                                .build();
+        }
+
+        @GetMapping("/by-popular-categories")
+        public ApiResponse<List<CategoryBooksResponse>> getBooksByPopularCategories(
+                        @RequestParam(required = false, defaultValue = "5") Integer categoryLimit,
+                        @RequestParam(required = false, defaultValue = "5") Integer bookLimit) {
+                return ApiResponse.<List<CategoryBooksResponse>>builder()
+                                .code(1000)
+                                .message("Lấy danh sách sách theo danh mục phổ biến thành công")
+                                .result(bookService.getBooksByPopularCategories(categoryLimit, bookLimit))
                                 .build();
         }
 }

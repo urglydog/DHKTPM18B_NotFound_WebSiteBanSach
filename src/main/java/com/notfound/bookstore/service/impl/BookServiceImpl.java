@@ -12,6 +12,10 @@ import com.notfound.bookstore.model.mapper.BookMapper;
 import com.notfound.bookstore.repository.BookRepository;
 import com.notfound.bookstore.service.BookService;
 import com.notfound.bookstore.service.GeminiService;
+import com.notfound.bookstore.model.dto.response.categoryresponse.CategoryBooksResponse;
+import com.notfound.bookstore.model.dto.response.categoryresponse.CategoryResponse;
+import com.notfound.bookstore.model.entity.Category;
+import com.notfound.bookstore.repository.CategoryRepository;
 import com.notfound.bookstore.service.QdrantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +38,7 @@ import java.util.stream.Collectors;
 public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
+    private final CategoryRepository categoryRepository;
     private final BookMapper bookMapper;
     private final GeminiService geminiService;
     private final QdrantService qdrantService;
@@ -170,6 +175,7 @@ public class BookServiceImpl implements BookService {
 
     // Lấy danh sách sách bán chạy nhất
     @Override
+    @org.springframework.cache.annotation.Cacheable(value = "best_selling_books", key = "#limit")
     public List<BookSummaryResponse> getBestSellingBooks(Integer limit) {
         Pageable pageable = PageRequest.of(0, limit != null ? limit : 10);
         List<Book> books = bookRepository.findBestSellingBooks(pageable);
@@ -180,11 +186,45 @@ public class BookServiceImpl implements BookService {
 
     // Lấy danh sách sách gợi ý cho bạn
     @Override
+    @org.springframework.cache.annotation.Cacheable(value = "suggested_books", key = "#limit")
     public List<BookSummaryResponse> getSuggestedBooks(Integer limit) {
         Pageable pageable = PageRequest.of(0, limit != null ? limit : 10);
         List<Book> books = bookRepository.findRandomBooks(pageable);
         return books.stream()
                 .map(bookMapper::toBookSummaryResponse)
                 .collect(Collectors.toList());
+    }
+
+    // Lấy danh sách sách theo danh mục phổ biến
+    @Override
+    @org.springframework.cache.annotation.Cacheable(value = "books_by_popular_categories", key = "{#categoryLimit, #bookLimit}")
+    public List<CategoryBooksResponse> getBooksByPopularCategories(Integer categoryLimit, Integer bookLimit) {
+        int catLimit = categoryLimit != null ? categoryLimit : 5;
+        int bkLimit = bookLimit != null ? bookLimit : 5;
+
+        Pageable categoryPageable = PageRequest.of(0, catLimit);
+        List<Category> popularCategories = categoryRepository.findPopularCategories(categoryPageable);
+
+        return popularCategories.stream().map(category -> {
+            Pageable bookPageable = PageRequest.of(0, bkLimit);
+            Page<Book> booksPage = bookRepository.findByCategoryId(category.getId(), bookPageable);
+
+            List<BookSummaryResponse> bookResponses = booksPage.getContent().stream()
+                    .map(bookMapper::toBookSummaryResponse)
+                    .collect(Collectors.toList());
+
+            CategoryResponse categoryResponse = CategoryResponse.builder()
+                    .id(category.getId())
+                    .name(category.getName())
+                    .description(category.getDescription())
+                    .build();
+
+            if (category.getParentCategory() != null) {
+                categoryResponse.setParentCategoryId(category.getParentCategory().getId());
+                categoryResponse.setParentCategoryName(category.getParentCategory().getName());
+            }
+
+            return new CategoryBooksResponse(categoryResponse, bookResponses);
+        }).collect(Collectors.toList());
     }
 }
