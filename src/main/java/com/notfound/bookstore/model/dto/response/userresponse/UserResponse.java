@@ -26,4 +26,5 @@ public class UserResponse {
     Boolean isEmailVerified;
     String authProvider;
     LocalDateTime lastLogin;
+    String avatar;
 }
