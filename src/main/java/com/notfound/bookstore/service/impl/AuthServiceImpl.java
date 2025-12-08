@@ -2,6 +2,7 @@ package com.notfound.bookstore.service.impl;
 
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.notfound.bookstore.exception.AppException;
 import com.notfound.bookstore.exception.ErrorCode;
@@ -29,6 +30,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import jakarta.annotation.PostConstruct;
+
+import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -387,4 +390,41 @@ public class AuthServiceImpl implements AuthService {
         return user;
     }
 
+
+    @Override
+    public AuthResponse refreshToken(String refreshToken) {
+        try {
+            // Parse và verify refresh token
+            JWSObject jwsObject = JWSObject.parse(refreshToken);
+            jwsObject.verify(new MACVerifier(SIGNER_KEY.getBytes()));
+
+            JWTClaimsSet claims = JWTClaimsSet.parse(jwsObject.getPayload().toJSONObject());
+
+            // Kiểm tra token đã hết hạn chưa
+            Date expiration = claims.getExpirationTime();
+            if (expiration.before(new Date())) {
+                throw new AppException(ErrorCode.TOKEN_EXPIRED);
+            }
+
+            // Lấy username từ token
+            String username = claims.getSubject();
+
+            // Lấy user
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+            // Tạo token mới
+            String newAccessToken = generateToken(user);
+            String newRefreshToken = generateRefreshToken(user);
+            UserResponse userResponse = userMapper.toUserResponse(user);
+
+            return AuthResponse.builder()
+                    .token(newAccessToken)
+                    .refreshToken(newRefreshToken)
+                    .user(userResponse)
+                    .build();
+        } catch (ParseException | JOSEException e) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        }
+    }
 }
