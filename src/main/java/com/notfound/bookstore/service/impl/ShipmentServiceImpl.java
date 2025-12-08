@@ -363,10 +363,11 @@ public class ShipmentServiceImpl implements com.notfound.bookstore.service.Shipm
 
     private GhnCreateOrderRequest buildGhnRequest(Order order) {
         ShippingDetails details = order.getShippingDetails();
-        int totalBooks = 0;
-        if(Objects.equals(order.getPaymentMethod(), "COD")){
-            totalBooks = order.getTotalAmount().intValue() + order.getShippingFee().intValue();
-        }
+
+        // Tính tổng số sách từ OrderItems
+        int totalBooks = order.getOrderItems().stream()
+                .mapToInt(OrderItem::getQuantity)
+                .sum();
 
         int totalWeight = Math.min(DEFAULT_BOOK_WEIGHT * totalBooks, 50000);
         int totalHeight = Math.min(DEFAULT_BOOK_HEIGHT * totalBooks, 200);

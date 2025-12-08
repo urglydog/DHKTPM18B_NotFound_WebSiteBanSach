@@ -2,6 +2,7 @@ package com.notfound.bookstore.controller;
 
 import com.notfound.bookstore.exception.ErrorCode;
 import com.notfound.bookstore.exception.AppException;
+import com.notfound.bookstore.model.dto.request.authorrequest.RefreshTokenRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.EmailRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.LoginRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.RegisterRequest;
@@ -268,5 +269,23 @@ public class AuthController {
                     URLEncoder.encode("google_login_failed", StandardCharsets.UTF_8);
             response.sendRedirect(errorUrl);
         }
+    }
+
+
+    /**
+     * Làm mới access token bằng refresh token
+     * Sử dụng khi access token hết hạn để lấy token mới mà không cần đăng nhập lại
+     *
+     * @param request Chứa refresh token
+     * @return Token mới (access token và refresh token mới)
+     */
+    @PostMapping("/refresh-token")
+    public ApiResponse<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        AuthResponse authResponse = authService.refreshToken(request.getRefreshToken());
+        return ApiResponse.<AuthResponse>builder()
+                .code(1000)
+                .message("Làm mới token thành công")
+                .result(authResponse)
+                .build();
     }
 }
