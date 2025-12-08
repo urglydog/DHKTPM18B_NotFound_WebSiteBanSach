@@ -81,6 +81,11 @@ public enum ErrorCode {
     CANNOT_DELETE_ADMIN(HttpStatus.FORBIDDEN, 2011, "Cannot delete admin user."),
     CANNOT_BAN_ADMIN(HttpStatus.FORBIDDEN, 2012, "Cannot ban admin user."),
 
+    // ==== Lỗi Danh Sách Yêu Thích (Wishlist) ====
+    BOOK_ALREADY_IN_WISHLIST(HttpStatus.FORBIDDEN,4001, "Book already in wishlist"),
+    BOOK_NOT_IN_WISHLIST(HttpStatus.FORBIDDEN, 4002, "Book not in wishlist"),
+    WISHLIST_EMPTY(HttpStatus.FORBIDDEN,4003, "Wishlist is empty"),
+
     // ==== Lỗi Vận chuyển (Shipment) ====
     SHIPMENT_NOT_FOUND(HttpStatus.NOT_FOUND, 7001, "Shipment not found."),
     SHIPMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, 7002, "Shipment already exists for this order."),
