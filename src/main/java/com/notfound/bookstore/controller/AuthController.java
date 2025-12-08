@@ -312,7 +312,8 @@ public class AuthController {
         return ApiResponse.<UserResponse>builder()
                 .code(1000)
                 .message("Lấy thông tin user thành công")
-                .result(userResponse).build();
+                .result(userResponse)
+                .build();
     }
 
     /**
