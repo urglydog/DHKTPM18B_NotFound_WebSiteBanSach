@@ -20,6 +20,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.*;
@@ -33,11 +34,13 @@ import jakarta.annotation.PostConstruct;
 
 import java.text.ParseException;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -90,6 +93,10 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
+
+        // Cập nhật lastLogin
+        user.setLastLogin(LocalDateTime.now());
+        user = userRepository.save(user);
 
         String token = generateToken(user);
         String refreshToken = generateRefreshToken(user);
@@ -244,25 +251,41 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse handleGoogleOAuthCallback(String code) {
-        // Bước 1: Trao đổi authorization code lấy access token
-        String accessToken = exchangeCodeForToken(code);
-        
-        // Bước 2: Lấy thông tin user từ Google
-        Map<String, Object> googleUserInfo = getUserInfoFromGoogle(accessToken);
-        
-        // Bước 3: Tạo hoặc tìm user trong database
-        User user = createOrUpdateUserFromGoogle(googleUserInfo);
-        
-        // Bước 4: Tạo JWT token và trả về
-        String token = generateToken(user);
-        String refreshToken = generateRefreshToken(user);
-        UserResponse userResponse = userMapper.toUserResponse(user);
-        
-        return AuthResponse.builder()
-                .token(token)
-                .refreshToken(refreshToken)
-                .user(userResponse)
-                .build();
+        try {
+            log.info("Handling Google OAuth callback with code");
+            
+            // Bước 1: Trao đổi authorization code lấy access token
+            String accessToken = exchangeCodeForToken(code);
+            
+            // Bước 2: Lấy thông tin user từ Google
+            Map<String, Object> googleUserInfo = getUserInfoFromGoogle(accessToken);
+            
+            // Bước 3: Tạo hoặc tìm user trong database
+            User user = createOrUpdateUserFromGoogle(googleUserInfo);
+            
+            // Bước 4: Cập nhật lastLogin
+            user.setLastLogin(LocalDateTime.now());
+            user = userRepository.save(user);
+            
+            // Bước 5: Tạo JWT token và trả về
+            String token = generateToken(user);
+            String refreshToken = generateRefreshToken(user);
+            UserResponse userResponse = userMapper.toUserResponse(user);
+            
+            log.info("Google OAuth login successful for user: {}", user.getUsername());
+            
+            return AuthResponse.builder()
+                    .token(token)
+                    .refreshToken(refreshToken)
+                    .user(userResponse)
+                    .build();
+        } catch (AppException e) {
+            log.error("AppException during Google OAuth callback: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error during Google OAuth callback: {}", e.getMessage(), e);
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        }
     }
 
     @Override
@@ -298,6 +321,7 @@ public class AuthServiceImpl implements AuthService {
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
         
         try {
+            log.info("Exchanging Google authorization code for access token");
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     tokenUrl,
                     HttpMethod.POST,
@@ -306,10 +330,15 @@ public class AuthServiceImpl implements AuthService {
             );
             Map<String, Object> responseBody = response.getBody();
             if (responseBody != null && responseBody.containsKey("access_token")) {
+                log.info("Successfully obtained access token from Google");
                 return (String) responseBody.get("access_token");
             }
+            log.error("Failed to get access token from Google. Response: {}", responseBody);
             throw new AppException(ErrorCode.INVALID_TOKEN);
+        } catch (AppException e) {
+            throw e;
         } catch (Exception e) {
+            log.error("Error exchanging code for token: {}", e.getMessage(), e);
             throw new AppException(ErrorCode.INVALID_TOKEN);
         }
     }
@@ -323,6 +352,7 @@ public class AuthServiceImpl implements AuthService {
         HttpEntity<String> entity = new HttpEntity<>(headers);
         
         try {
+            log.info("Fetching user info from Google");
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     userInfoUrl,
                     HttpMethod.GET,
@@ -331,10 +361,15 @@ public class AuthServiceImpl implements AuthService {
             );
             Map<String, Object> body = response.getBody();
             if (body == null) {
+                log.error("Failed to get user info from Google. Response body is null");
                 throw new AppException(ErrorCode.INVALID_TOKEN);
             }
+            log.info("Successfully obtained user info from Google. Email: {}", body.get("email"));
             return body;
+        } catch (AppException e) {
+            throw e;
         } catch (Exception e) {
+            log.error("Error fetching user info from Google: {}", e.getMessage(), e);
             throw new AppException(ErrorCode.INVALID_TOKEN);
         }
     }
@@ -384,6 +419,7 @@ public class AuthServiceImpl implements AuthService {
             if (picture != null && !picture.isEmpty()) {
                 user.setAvatar_url(picture);
             }
+            // Note: lastLogin sẽ được cập nhật trong handleGoogleOAuthCallback sau khi save
             user = userRepository.save(user);
         }
         

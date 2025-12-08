@@ -38,13 +38,12 @@ public class BookServiceImpl implements BookService {
     private final GeminiService geminiService;
     private final QdrantService qdrantService;
 
-    //Tìm kiếm sách theo từ khóa (tên sách, tác giả, hoặc thể loại)
+    // Tìm kiếm sách theo từ khóa (tên sách, tác giả, hoặc thể loại)
     @Override
     public PageResponse<BookSummaryResponse> searchBooks(BookSearchRequest request) {
         Pageable pageable = PageRequest.of(
                 request.getPage() != null ? request.getPage() : 0,
-                request.getSize() != null ? request.getSize() : 10
-        );
+                request.getSize() != null ? request.getSize() : 10);
 
         // TRƯỜNG HỢP 1: KHÔNG NHẬP KEYWORD → LẤY ALL
         if (!StringUtils.hasText(request.getKeyword())) {
@@ -66,8 +65,7 @@ public class BookServiceImpl implements BookService {
         if (bookIds.isEmpty()) {
             log.warn("AI search empty → fallback to database search");
             Page<Book> bookPage = bookRepository.searchBooks(keyword, pageable);
-            Page<BookSummaryResponse> responsePage =
-                    bookPage.map(bookMapper::toBookSummaryResponse);
+            Page<BookSummaryResponse> responsePage = bookPage.map(bookMapper::toBookSummaryResponse);
             return bookMapper.toPageResponse(responsePage);
         }
 
@@ -93,13 +91,13 @@ public class BookServiceImpl implements BookService {
 
         Page<Book> bookPage = new PageImpl<>(pagedBooks, pageable, books.size());
 
-        Page<BookSummaryResponse> responsePage =
-                bookPage.map(bookMapper::toBookSummaryResponse);
+        Page<BookSummaryResponse> responsePage = bookPage.map(bookMapper::toBookSummaryResponse);
 
         return bookMapper.toPageResponse(responsePage);
     }
 
-    // Lọc sách theo các tiêu chí: giá, đánh giá trung bình, ngày phát hành và từ khóa
+    // Lọc sách theo các tiêu chí: giá, đánh giá trung bình, ngày phát hành và từ
+    // khóa
     @Override
     public PageResponse<BookSummaryResponse> findByFilters(BookFilterRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
@@ -110,8 +108,7 @@ public class BookServiceImpl implements BookService {
                 request.getMaxPrice(),
                 request.getMinRating(),
                 request.getPublishedAfter(),
-                pageable
-        );
+                pageable);
 
         Page<BookSummaryResponse> responsePage = resultPage.map(result -> {
             BookSummaryResponse response = bookMapper.toBookSummaryResponse(result.getBook());
@@ -149,8 +146,7 @@ public class BookServiceImpl implements BookService {
     public PageResponse<BookSummaryResponse> getAllBooks(Integer page, Integer pageSize) {
         Pageable pageable = PageRequest.of(
                 page != null ? page : 0,
-                pageSize != null ? pageSize : 10
-        );
+                pageSize != null ? pageSize : 10);
 
         Page<BookWithRating> resultPage = bookRepository.findAllBooksWithRating(pageable);
 
@@ -170,5 +166,15 @@ public class BookServiceImpl implements BookService {
         Book book = bookRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new RuntimeException("Book not found"));
         return bookMapper.toBookResponse(book);
+    }
+
+    // Lấy danh sách sách bán chạy nhất
+    @Override
+    public List<BookSummaryResponse> getBestSellingBooks(Integer limit) {
+        Pageable pageable = PageRequest.of(0, limit != null ? limit : 10);
+        List<Book> books = bookRepository.findBestSellingBooks(pageable);
+        return books.stream()
+                .map(bookMapper::toBookSummaryResponse)
+                .collect(Collectors.toList());
     }
 }
