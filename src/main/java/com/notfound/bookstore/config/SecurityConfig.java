@@ -33,53 +33,58 @@ public class SecurityConfig {
         @Autowired
         private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-    private final String[] PUBLIC_ENDPOINTS = {
-            "/api/public/**",
-            "/favicon.ico",
+        private final String[] PUBLIC_ENDPOINTS = {
+                        "/api/public/**",
+                        "/favicon.ico",
 
-            // Auth
-            "/api/auth/**",
-            "/api/auth/register",
-            "/api/auth/login",
-            "/api/auth/send-otp",
-            "/api/auth/verify-otp",
-            "/api/auth/verify-email",
-            "/api/auth/confirm-email",
-            "/api/auth/google/callback",
-            "/api/auth/introspect",
+                        // Auth
+                        "/api/auth/**",
+                        "/api/auth/register",
+                        "/api/auth/login",
+                        "/api/auth/send-otp",
+                        "/api/auth/verify-otp",
+                        "/api/auth/verify-email",
+                        "/api/auth/confirm-email",
+                        "/api/auth/google/callback",
+                        "/api/auth/introspect",
 
-            // Books – Categories – Authors
-            "/api/books/**",
-            "/api/categories/**",
-            "/api/authors/**",
+                        // Books – Categories – Authors
+                        "/api/books/**",
+                        "/api/categories/**",
+                        "/api/authors/**",
 
-            // News
-            "/api/news/**",
+                        // News
+                        "/api/news/**",
 
-            // Review
-            "/api/review/book/{bookId}",
+                        // Review
+                        "/api/review/book/{bookId}",
 
-            // Payment - Allow callback and return URLs (these are called by payment gateways or redirect from them)
-            "/api/payment/*/callback",
-            "/api/payment/*/return",
-            "/api/payment/vnpay/callback",
-            "/api/payment/vnpay/return",
-            "/api/payment/momo/callback",
-            "/api/payment/momo/return",
-            "/api/payment/zalopay/callback",
-            "/api/payment/zalopay/return",
+                        // Payment - Allow callback and return URLs (these are called by payment
+                        // gateways or redirect from them)
+                        "/api/payment/*/callback",
+                        "/api/payment/*/return",
+                        "/api/payment/vnpay/callback",
+                        "/api/payment/vnpay/return",
+                        "/api/payment/momo/callback",
+                        "/api/payment/momo/return",
+                        "/api/payment/zalopay/callback",
+                        "/api/payment/zalopay/return",
 
-            // Promotions
-            "/api/promotions/active",
-            "/api/promotions/book/**",
-            "/api/promotions/validate",
+                        // Promotions
+                        "/api/promotions/active",
+                        "/api/promotions/book/**",
+                        "/api/promotions/validate",
 
-            // OAuth2
-            "/oauth2/**",
+                        // OAuth2
+                        "/oauth2/**",
 
-            //Shipment
-            "/api/shipment/customer/**"
-    };
+                        // Shipment
+                        "/api/shipment/customer/**",
+
+                        // Chatbot
+                        "/api/chatbot/**",
+                        "/api/chat/**"
+        };
 
         @Value("${jwt.signerKey}")
         private String signerKey;
@@ -104,7 +109,8 @@ public class SecurityConfig {
                                 .oauth2ResourceServer(oauth2 -> oauth2
                                                 .jwt(jwtConfigurer -> jwtConfigurer
                                                                 .decoder(jwtDecoder())
-                                                                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                                                                .jwtAuthenticationConverter(
+                                                                                jwtAuthenticationConverter()))
                                                 .authenticationEntryPoint(jwtAuthenticationEntryPoint))
 
                                 .exceptionHandling(exception -> exception
@@ -114,7 +120,8 @@ public class SecurityConfig {
         }
 
         /**
-         * Cấu hình CORS cho phép Frontend (localhost:3000) truy cập Backend (localhost:8080)
+         * Cấu hình CORS cho phép Frontend (localhost:3000) truy cập Backend
+         * (localhost:8080)
          */
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
@@ -122,15 +129,13 @@ public class SecurityConfig {
 
                 // Cho phép các origin cụ thể (localhost:3000 cho development)
                 configuration.setAllowedOriginPatterns(Arrays.asList(
-                    "http://localhost:3000",
-                    "http://localhost:3001",
-                    "http://127.0.0.1:3000"
-                ));
+                                "http://localhost:3000",
+                                "http://localhost:3001",
+                                "http://127.0.0.1:3000"));
 
                 // Cho phép các HTTP methods
                 configuration.setAllowedMethods(Arrays.asList(
-                    "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
-                ));
+                                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 
                 // Cho phép tất cả headers
                 configuration.setAllowedHeaders(Arrays.asList("*"));
@@ -143,10 +148,9 @@ public class SecurityConfig {
 
                 // Expose các headers để frontend có thể đọc
                 configuration.setExposedHeaders(Arrays.asList(
-                    "Authorization",
-                    "Content-Type",
-                    "X-Total-Count"
-                ));
+                                "Authorization",
+                                "Content-Type",
+                                "X-Total-Count"));
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);
