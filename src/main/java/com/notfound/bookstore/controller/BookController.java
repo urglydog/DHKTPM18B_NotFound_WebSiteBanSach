@@ -73,7 +73,7 @@ public class BookController {
                 .build();
     }
 
-    @GetMapping("/{id:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}")
+    @GetMapping("/{id}")
     public ApiResponse<BookResponse> getBookById(@PathVariable String id) {
         return ApiResponse.<BookResponse>builder()
                 .code(1000)
