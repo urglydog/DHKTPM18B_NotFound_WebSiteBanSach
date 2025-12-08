@@ -29,6 +29,7 @@ public enum ErrorCode {
     ERROR_ENCODE(HttpStatus.INTERNAL_SERVER_ERROR, 3005, "Error encoding URL parameters."),
     ERROR_CREATE_HMACSHA512(HttpStatus.INTERNAL_SERVER_ERROR, 3000, "Error creating HMAC-SHA512 signature."),
     INVALID_PAYMENT_SIGNATURE(HttpStatus.BAD_REQUEST, 3001, "Invalid Payment signature."),
+    INVALID_PAYMENT_CALLBACK(HttpStatus.BAD_REQUEST, 3006, "Invalid payment callback data."),
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, 3002, "Payment amount mismatch."),
     PAYMENT_TRANSACTION_FAILED(HttpStatus.BAD_REQUEST, 3003, "Payment transaction failed."),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, 3004, "Payment not found"),

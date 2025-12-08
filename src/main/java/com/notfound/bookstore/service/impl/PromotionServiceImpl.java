@@ -54,7 +54,21 @@ public class PromotionServiceImpl implements PromotionService {
         promotion.setUsageLimit(request.getUsageLimit());
         promotion.setUsageCount(0);
         promotion.setDescription(request.getDescription());
-        promotion.setStatus(Promotion.Status.ACTIVE);
+
+        // Tự động set status dựa trên startDate và endDate
+        LocalDate today = LocalDate.now();
+        // Nếu endDate < today, set EXPIRED
+        if (request.getEndDate().isBefore(today)) {
+            promotion.setStatus(Promotion.Status.EXPIRED);
+        }
+        // Nếu startDate > today, set INACTIVE (chưa đến ngày áp dụng)
+        else if (request.getStartDate().isAfter(today)) {
+            promotion.setStatus(Promotion.Status.INACTIVE);
+        }
+        // Nếu startDate <= today <= endDate, set ACTIVE (trong thời gian áp dụng)
+        else {
+            promotion.setStatus(Promotion.Status.ACTIVE);
+        }
 
         // Nếu có danh sách sách áp dụng
         if (request.getApplicableBookIds() != null && !request.getApplicableBookIds().isEmpty()) {
@@ -95,12 +109,44 @@ public class PromotionServiceImpl implements PromotionService {
             promotion.setDiscountType(Promotion.DiscountType.PERCENTAGE);
             promotion.setDiscountValue(request.getDiscountPercent());
         }
+
+        // Lưu dates hiện tại để so sánh
+        LocalDate oldStartDate = promotion.getStartDate();
+        LocalDate oldEndDate = promotion.getEndDate();
+
         if (request.getStartDate() != null) {
             promotion.setStartDate(request.getStartDate());
         }
         if (request.getEndDate() != null) {
             promotion.setEndDate(request.getEndDate());
         }
+
+        // Tự động cập nhật status dựa trên startDate và endDate sau khi update
+        // Chỉ cập nhật status nếu có thay đổi về dates hoặc status hiện tại là EXPIRED
+        LocalDate today = LocalDate.now();
+        LocalDate finalStartDate = request.getStartDate() != null ? request.getStartDate() : promotion.getStartDate();
+        LocalDate finalEndDate = request.getEndDate() != null ? request.getEndDate() : promotion.getEndDate();
+
+        // Kiểm tra xem có thay đổi dates không
+        boolean datesChanged = (request.getStartDate() != null && !request.getStartDate().equals(oldStartDate)) ||
+                (request.getEndDate() != null && !request.getEndDate().equals(oldEndDate));
+
+        // Nếu có thay đổi dates hoặc status hiện tại là EXPIRED, tự động cập nhật status
+        if (datesChanged || promotion.getStatus() == Promotion.Status.EXPIRED) {
+            // Nếu endDate < today, set EXPIRED
+            if (finalEndDate.isBefore(today)) {
+                promotion.setStatus(Promotion.Status.EXPIRED);
+            }
+            // Nếu startDate > today, set INACTIVE (chưa đến ngày áp dụng)
+            else if (finalStartDate.isAfter(today)) {
+                promotion.setStatus(Promotion.Status.INACTIVE);
+            }
+            // Nếu startDate <= today <= endDate, set ACTIVE (trong thời gian áp dụng)
+            else {
+                promotion.setStatus(Promotion.Status.ACTIVE);
+            }
+        }
+
         if (request.getUsageLimit() != null) {
             promotion.setUsageLimit(request.getUsageLimit());
         }
@@ -249,6 +295,7 @@ public class PromotionServiceImpl implements PromotionService {
         }
 
         // Tất cả điều kiện đều hợp lệ
+        // Dùng method getDiscountPercent() từ entity (backward compatibility)
         return PromotionValidationResponse.builder()
                 .isValid(true)
                 .message("Mã khuyến mãi hợp lệ")
@@ -288,6 +335,7 @@ public class PromotionServiceImpl implements PromotionService {
                         .collect(Collectors.toList())
                 : new ArrayList<>();
 
+        // Dùng method getDiscountPercent() từ entity (backward compatibility)
         return PromotionResponse.builder()
                 .promotionID(promotion.getPromotionID())
                 .name(promotion.getName())

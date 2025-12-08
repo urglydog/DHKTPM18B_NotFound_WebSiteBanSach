@@ -15,7 +15,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"applicableBooks", "applicableCategories"})
+@ToString(exclude = { "applicableBooks", "applicableCategories" })
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Promotion {
 
@@ -68,19 +68,11 @@ public class Promotion {
     String updatedBy;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "promotion_books",
-        joinColumns = @JoinColumn(name = "promotion_id"),
-        inverseJoinColumns = @JoinColumn(name = "book_id")
-    )
+    @JoinTable(name = "promotion_books", joinColumns = @JoinColumn(name = "promotion_id"), inverseJoinColumns = @JoinColumn(name = "book_id"))
     List<Book> applicableBooks;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "promotion_categories",
-        joinColumns = @JoinColumn(name = "promotion_id"),
-        inverseJoinColumns = @JoinColumn(name = "category_id")
-    )
+    @JoinTable(name = "promotion_categories", joinColumns = @JoinColumn(name = "promotion_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
     List<Category> applicableCategories;
 
     public enum Status {
@@ -88,8 +80,8 @@ public class Promotion {
     }
 
     public enum DiscountType {
-        PERCENTAGE,     // Giảm theo % (vd: 10%)
-        FIXED_AMOUNT    // Giảm tiền mặt (vd: 50.000đ)
+        PERCENTAGE, // Giảm theo % (vd: 10%)
+        FIXED_AMOUNT // Giảm tiền mặt (vd: 50.000đ)
     }
 
     public void incrementUsageCount() {
