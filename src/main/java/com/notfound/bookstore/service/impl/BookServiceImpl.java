@@ -11,16 +11,22 @@ import com.notfound.bookstore.model.entity.Book;
 import com.notfound.bookstore.model.mapper.BookMapper;
 import com.notfound.bookstore.repository.BookRepository;
 import com.notfound.bookstore.service.BookService;
+import com.notfound.bookstore.service.GeminiService;
+import com.notfound.bookstore.service.QdrantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import java.time.LocalDate;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -29,6 +35,8 @@ public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
+    private final GeminiService geminiService;
+    private final QdrantService qdrantService;
 
     //Tìm kiếm sách theo từ khóa (tên sách, tác giả, hoặc thể loại)
     @Override
@@ -38,17 +46,56 @@ public class BookServiceImpl implements BookService {
                 request.getSize() != null ? request.getSize() : 10
         );
 
-        Page<Book> bookPage;
+        // TRƯỜNG HỢP 1: KHÔNG NHẬP KEYWORD → LẤY ALL
         if (!StringUtils.hasText(request.getKeyword())) {
-            bookPage = bookRepository.findAll(pageable);
-        } else {
-            String keyword = request.getKeyword().trim();
-            log.info("Searching with keyword: {}", keyword);
-            bookPage = bookRepository.searchBooks(keyword, pageable);
-            log.info("Found {} books", bookPage.getTotalElements());
+            Page<Book> bookPage = bookRepository.findAll(pageable);
+            Page<BookSummaryResponse> responsePage = bookPage.map(bookMapper::toBookSummaryResponse);
+            return bookMapper.toPageResponse(responsePage);
+        }
+        // TRƯỜNG HỢP 2: CÓ KEYWORD → DÙNG AI SEARCH
+        String keyword = request.getKeyword().trim();
+        log.info("AI Searching with keyword: {}", keyword);
+
+        // Gemini → Vector
+        double[] queryVector = geminiService.embed(keyword);
+
+        // Qdrant → Search vector → Lấy danh sách BookID
+        List<String> bookIds = qdrantService.searchBookIds(queryVector, 50);
+
+        // Nếu AI không trả ra kết quả
+        if (bookIds.isEmpty()) {
+            log.warn("AI search empty → fallback to database search");
+            Page<Book> bookPage = bookRepository.searchBooks(keyword, pageable);
+            Page<BookSummaryResponse> responsePage =
+                    bookPage.map(bookMapper::toBookSummaryResponse);
+            return bookMapper.toPageResponse(responsePage);
         }
 
-        Page<BookSummaryResponse> responsePage = bookPage.map(bookMapper::toBookSummaryResponse);
+        // Lấy danh sách Book từ database theo bookIds
+        List<UUID> uuidList = bookIds.stream()
+                .map(UUID::fromString)
+                .collect(Collectors.toList());
+
+        List<Book> dbBooks = bookRepository.findAllById(uuidList);
+
+        Map<UUID, Book> bookMap = dbBooks.stream()
+                .collect(Collectors.toMap(Book::getId, b -> b));
+
+        List<Book> books = uuidList.stream()
+                .map(bookMap::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        // Manual paging vì Qdrant không hỗ trợ Pageable
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), books.size());
+        List<Book> pagedBooks = books.subList(start, end);
+
+        Page<Book> bookPage = new PageImpl<>(pagedBooks, pageable, books.size());
+
+        Page<BookSummaryResponse> responsePage =
+                bookPage.map(bookMapper::toBookSummaryResponse);
+
         return bookMapper.toPageResponse(responsePage);
     }
 
@@ -94,6 +141,26 @@ public class BookServiceImpl implements BookService {
         };
 
         Page<BookSummaryResponse> responsePage = bookPage.map(bookMapper::toBookSummaryResponse);
+        return bookMapper.toPageResponse(responsePage);
+    }
+
+    // Lấy tất cả sách với phân trang đơn giản
+    @Override
+    public PageResponse<BookSummaryResponse> getAllBooks(Integer page, Integer pageSize) {
+        Pageable pageable = PageRequest.of(
+                page != null ? page : 0,
+                pageSize != null ? pageSize : 10
+        );
+
+        Page<BookWithRating> resultPage = bookRepository.findAllBooksWithRating(pageable);
+
+        Page<BookSummaryResponse> responsePage = resultPage.map(result -> {
+            BookSummaryResponse response = bookMapper.toBookSummaryResponse(result.getBook());
+            response.setAverageRating(result.getAverageRating());
+            response.setReviewCount(result.getReviewCount().intValue());
+            return response;
+        });
+
         return bookMapper.toPageResponse(responsePage);
     }
 

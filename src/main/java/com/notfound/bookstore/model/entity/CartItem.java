@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -26,10 +27,12 @@ public class CartItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cart_id", nullable = false)
+    @JsonBackReference
     Cart cart;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", nullable = false)
+    @JsonBackReference
     Book book;
 
     public CartItem(Cart cart, Book book, Integer quantity) {
@@ -39,6 +42,10 @@ public class CartItem {
     }
 
     public double getSubTotal(){
-        return book.getPrice() * quantity;
+        // Use discount price if available, otherwise use regular price
+        Double price = (book.getDiscountPrice() != null && book.getDiscountPrice() > 0) 
+                ? book.getDiscountPrice() 
+                : book.getPrice();
+        return price * quantity;
     }
 }

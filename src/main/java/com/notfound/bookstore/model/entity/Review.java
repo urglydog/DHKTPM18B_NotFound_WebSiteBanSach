@@ -35,6 +35,12 @@ public class Review {
     @Column(name = "created_at", nullable = false)
     LocalDateTime createdAt;
 
+    @Column(name = "is_verified_purchase", nullable = false)
+    Boolean isVerifiedPurchase = false; // True nếu user đã mua sách này
+
+    @Column(name = "helpful_count")
+    Integer helpfulCount = 0; // Số người thấy review hữu ích
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonBackReference

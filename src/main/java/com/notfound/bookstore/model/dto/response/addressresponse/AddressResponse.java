@@ -1,10 +1,16 @@
 package com.notfound.bookstore.model.dto.response.addressresponse;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Response DTO chứa thông tin địa chỉ giao hàng
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,7 +21,12 @@ public class AddressResponse {
     String recipientName;
     String phoneNumber;
     String street;
-    String city;
+    String ward;
     String district;
-    Boolean isDefault;
+    String province;
+    BigDecimal latitude;
+    BigDecimal longitude;
+    Integer provinceId;
+    Integer districtId;
+    String wardCode;
 }

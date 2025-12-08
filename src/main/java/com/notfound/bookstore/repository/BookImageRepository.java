@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface BookImageRepository extends JpaRepository<BookImage, UUID> {
+public interface BookImageRepository extends JpaRepository<BookImage, Long> {
     List<BookImage> findByBook(Book book);
     List<BookImage> findByBookId(UUID bookId);
 }

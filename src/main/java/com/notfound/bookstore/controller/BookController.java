@@ -7,21 +7,15 @@ import com.notfound.bookstore.model.dto.response.ApiResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.BookResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.BookSummaryResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.PageResponse;
-import com.notfound.bookstore.model.entity.Book;
-import com.notfound.bookstore.service.BookService;
-import com.notfound.bookstore.service.impl.BookServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
+import com.notfound.bookstore.service.BookService;
 
+/**
+ * Controller xử lý các chức năng liên quan đến sách
+ */
 @RestController
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
@@ -29,10 +23,29 @@ public class BookController {
 
     private final BookService bookService;
 
-    // Tìm kiếm sách theo từ khóa (tên sách, tác giả, hoặc thể loại)
+    @GetMapping
+    public ApiResponse<PageResponse<BookSummaryResponse>> getAllBooks(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize
+    ) {
+        return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
+                .code(1000)
+                .message("Lấy danh sách sách thành công")
+                .result(bookService.getAllBooks(page, pageSize))
+                .build();
+    }
+
     @GetMapping("/search")
-    public ApiResponse<PageResponse<BookSummaryResponse>> searchBooks(@ModelAttribute BookSearchRequest request)
-    {
+    public ApiResponse<PageResponse<BookSummaryResponse>> searchBooks(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size
+    ) {
+        BookSearchRequest request = new BookSearchRequest();
+        request.setKeyword(keyword);
+        request.setPage(page);
+        request.setSize(size);
+
         return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
                 .code(1000)
                 .message("Tìm kiếm sách thành công")
@@ -40,7 +53,6 @@ public class BookController {
                 .build();
     }
 
-    // Lọc sách theo các tiêu chí: giá, đánh giá trung bình và ngày phát hành
     @GetMapping("/filter")
     public ApiResponse<PageResponse<BookSummaryResponse>> filterBooks(
             @Valid @ModelAttribute BookFilterRequest request) {
@@ -51,9 +63,9 @@ public class BookController {
                 .build();
     }
 
-    // Lấy danh sách sách được sắp xếp theo loại sắp xếp được chỉ định
     @GetMapping("/sorted")
-    public ApiResponse<PageResponse<BookSummaryResponse>> getSortedBooks(@ModelAttribute BookSortRequest request) {
+    public ApiResponse<PageResponse<BookSummaryResponse>> getSortedBooks(
+            @ModelAttribute BookSortRequest request) {
         return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
                 .code(1000)
                 .message("Sắp xếp sách thành công")
@@ -61,17 +73,6 @@ public class BookController {
                 .build();
     }
 
-    // Lấy tất cả sách với phân trang
-    @GetMapping
-    public ApiResponse<PageResponse<BookSummaryResponse>> getAllBooks(@ModelAttribute BookSearchRequest request) {
-        return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
-                .code(1000)
-                .message("Lấy danh sách sách thành công")
-                .result(bookService.searchBooks(request))
-                .build();
-    }
-
-    // Lấy thông tin chi tiết của một cuốn sách dựa trên ID
     @GetMapping("/{id}")
     public ApiResponse<BookResponse> getBookById(@PathVariable String id) {
         return ApiResponse.<BookResponse>builder()

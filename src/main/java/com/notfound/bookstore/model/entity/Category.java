@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -14,6 +15,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @ToString(exclude = {"books", "parentCategory", "subCategories"})
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Category {
@@ -30,6 +32,7 @@ public class Category {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_category_id")
+    @JsonBackReference
     Category parentCategory;
 
     @OneToMany(mappedBy = "parentCategory", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

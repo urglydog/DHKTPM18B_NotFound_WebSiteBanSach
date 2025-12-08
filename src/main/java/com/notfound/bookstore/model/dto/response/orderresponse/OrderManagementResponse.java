@@ -1,16 +1,25 @@
 package com.notfound.bookstore.model.dto.response.orderresponse;
 
-import com.notfound.bookstore.model.dto.response.orderresponse.OrderResponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Data
-@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderManagementResponse extends OrderResponse {
-    String customerName;
-    String customerEmail;
-    String customerPhone;
+    String customerUsername;
+    String customerGender;
+    LocalDate customerDateOfBirth;
+    Integer customerPoints;
+    String customerStatus;
+    LocalDateTime customerCreatedAt;
+    LocalDateTime customerLastLogin;
+    Boolean isEmailVerified;
+    String authProvider;
 }

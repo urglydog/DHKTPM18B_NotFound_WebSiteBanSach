@@ -1,5 +1,6 @@
 package com.notfound.bookstore.model.dto.request.bookrequest;
 
+import com.notfound.bookstore.model.entity.Book;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -7,8 +8,9 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -19,22 +21,29 @@ public class CreateBookRequest {
     @NotBlank(message = "Title is required")
     String title;
 
-    @NotBlank(message = "Author is required")
-    String author;
-
-    @NotBlank(message = "Description is required")
-    String description;
+    String isbn;
 
     @NotNull(message = "Price is required")
     @DecimalMin(value = "0.0", message = "Price must be positive")
-    BigDecimal price;
+    Double price;
+
+    @DecimalMin(value = "0.0", message = "Discount price must be positive")
+    Double discountPrice;
+
+    @DecimalMin(value = "0.0", message = "Import price must be positive")
+    Double importPrice;
 
     @NotNull
     @Min(value = 0, message = "Stock cannot be negative")
-    Integer stock;
+    Integer stockQuantity;
 
-    String isbn;
-    String categoryId;
-    String publisher;
     LocalDate publishDate;
+
+    String description;
+
+    Book.Status status;
+
+    List<UUID> authorIds;
+
+    List<UUID> categoryIds;
 }
