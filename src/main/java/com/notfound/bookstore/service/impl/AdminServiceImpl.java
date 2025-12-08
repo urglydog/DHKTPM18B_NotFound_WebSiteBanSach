@@ -61,6 +61,7 @@ public class AdminServiceImpl implements AdminService {
                 .isbn(request.getIsbn())
                 .price(request.getPrice())
                 .discountPrice(request.getDiscountPrice())
+                .importPrice(request.getImportPrice())
                 .stockQuantity(request.getStockQuantity())
                 .publishDate(request.getPublishDate())
                 .description(request.getDescription())
@@ -127,6 +128,9 @@ public class AdminServiceImpl implements AdminService {
         }
         if (request.getDiscountPrice() != null) {
             book.setDiscountPrice(request.getDiscountPrice());
+        }
+        if (request.getImportPrice() != null) {
+            book.setImportPrice(request.getImportPrice());
         }
         if (request.getStockQuantity() != null) {
             book.setStockQuantity(request.getStockQuantity());
@@ -396,12 +400,15 @@ public class AdminServiceImpl implements AdminService {
                 .isbn(book.getIsbn())
                 .price(book.getPrice())
                 .discountPrice(book.getDiscountPrice())
+                .importPrice(book.getImportPrice())
                 .stockQuantity(book.getStockQuantity())
                 .publishDate(book.getPublishDate())
                 .description(book.getDescription())
                 .status(book.getStatus())
                 .createdAt(book.getCreatedAt())
                 .updatedAt(book.getUpdatedAt())
+                .createdBy(book.getCreatedBy())
+                .updatedBy(book.getUpdatedBy())
                 .authors(authorInfos)
                 .categories(categoryInfos)
                 .images(imageInfos)

@@ -26,6 +26,9 @@ public class UpdateBookRequest {
     @DecimalMin(value = "0.0", message = "Discount price must be positive")
     Double discountPrice;
 
+    @DecimalMin(value = "0.0", message = "Import price must be positive")
+    Double importPrice;
+
     @Min(value = 0, message = "Stock cannot be negative")
     Integer stockQuantity;
 
