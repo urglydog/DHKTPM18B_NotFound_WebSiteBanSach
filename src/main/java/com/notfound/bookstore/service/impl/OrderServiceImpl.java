@@ -446,6 +446,17 @@ public class OrderServiceImpl implements OrderService {
                         ? order.getCustomer().getMembershipTier().name()
                         : "BRONZE");
 
+        // Thêm thông tin giao hàng từ ShippingDetails
+        if (order.getShippingDetails() != null) {
+            builder.recipientName(order.getShippingDetails().getRecipientName())
+                   .recipientPhone(order.getShippingDetails().getPhoneNumber())
+                   .shippingAddress(order.getShippingDetails().getFullAddress())
+                   .shippingProvince(order.getShippingDetails().getProvince())
+                   .shippingDistrict(order.getShippingDetails().getDistrict())
+                   .shippingWard(order.getShippingDetails().getWard())
+                   .shippingNote(order.getShippingDetails().getShippingNote());
+        }
+
         // Thêm thông tin khuyến mãi nếu có
         if (promotion != null) {
             builder.promotionCode(promotion.getCode())

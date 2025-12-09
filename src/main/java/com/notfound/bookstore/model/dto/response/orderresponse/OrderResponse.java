@@ -1,6 +1,5 @@
 package com.notfound.bookstore.model.dto.response.orderresponse;
 
-import com.notfound.bookstore.model.dto.response.addressresponse.AddressResponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -38,8 +37,16 @@ public class OrderResponse {
     String customerPhone;
     String customerMembershipTier;
 
+    // Thông tin giao hàng (từ ShippingDetails)
+    String recipientName;
+    String recipientPhone;
+    String shippingAddress;      // fullAddress
+    String shippingProvince;     // province
+    String shippingDistrict;     // district
+    String shippingWard;         // ward
+    String shippingNote;         // shippingNote
+
     List<OrderItemResponse> items;
-    AddressResponse shippingAddress;
 
     String note;
 }
