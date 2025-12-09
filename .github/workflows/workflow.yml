@@ -3,14 +3,16 @@ name: Deploy Spring Boot to Multiple AWS EC2 Instances
 on:
   push:
     branches:
-      - develop
+      - deploy
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        host: [ ${{ secrets.EC2_1_HOST }}, ${{ secrets.EC2_2_HOST }} ]
+        include:
+          - host: ${{ secrets.EC2_1_HOST }}
+          - host: ${{ secrets.EC2_2_HOST }}
 
     steps:
       - name: Checkout code
