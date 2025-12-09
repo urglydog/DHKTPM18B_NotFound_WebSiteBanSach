@@ -96,4 +96,19 @@ public class CategoryController {
                 .build();
     }
 
+    /**
+     * Lấy tất cả danh mục kèm theo 1 cuốn sách mẫu
+     * Dùng để hiển thị ảnh và tiêu đề sách trên giao diện
+     *
+     * @return Danh sách tất cả danh mục với sách mẫu
+     */
+    @GetMapping("/with-sample-book")
+    public ApiResponse<List<com.notfound.bookstore.model.dto.response.categoryresponse.CategoryWithBookResponse>> getAllCategoriesWithSampleBook() {
+        return ApiResponse.<List<com.notfound.bookstore.model.dto.response.categoryresponse.CategoryWithBookResponse>>builder()
+                .code(1000)
+                .message("Lấy danh sách thể loại với sách mẫu thành công")
+                .result(categoryService.getAllCategoriesWithSampleBook())
+                .build();
+    }
+
 }
