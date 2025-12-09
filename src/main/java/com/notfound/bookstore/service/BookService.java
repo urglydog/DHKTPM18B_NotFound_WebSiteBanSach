@@ -1,6 +1,7 @@
 package com.notfound.bookstore.service;
 
 import com.notfound.bookstore.model.dto.request.bookrequest.BookFilterRequest;
+import com.notfound.bookstore.model.dto.request.bookrequest.BookRequest;
 import com.notfound.bookstore.model.dto.request.bookrequest.BookSearchRequest;
 import com.notfound.bookstore.model.dto.request.bookrequest.BookSortRequest;
 import com.notfound.bookstore.model.dto.response.bookresponse.BookResponse;
@@ -28,4 +29,6 @@ public interface BookService {
 
     // Lấy danh sách sách bán chạy nhất
     List<BookSummaryResponse> getBestSellingBooks(Integer limit);
+
+    PageResponse<BookSummaryResponse> getAllBooksOption(BookRequest bookRequest);
 }

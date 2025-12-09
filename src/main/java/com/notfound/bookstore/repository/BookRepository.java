@@ -134,4 +134,19 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
                         "GROUP BY b.id")
         Page<BookWithRating> findAllBooksWithRating(Pageable pageable);
 
+        @Query("SELECT b as book, COALESCE(AVG(r.rating), 0) as averageRating, COUNT(r) as reviewCount " +
+                "FROM Book b " +
+                "LEFT JOIN b.reviews r " +
+                "LEFT JOIN b.categories c " +
+                "WHERE (:minPrice IS NULL OR b.discountPrice >= :minPrice) " +
+                "AND (:maxPrice IS NULL OR b.discountPrice <= :maxPrice) " +
+                "AND (:categoryIds IS NULL OR c.id IN :categoryIds) " +
+                "GROUP BY b.id, b.discountPrice, b.createdAt " +
+                "HAVING (:minRating IS NULL OR COALESCE(AVG(r.rating), 0) >= :minRating)")
+        Page<BookWithRating> findByFiltersAndSort(
+                @Param("minPrice") Double minPrice,
+                @Param("maxPrice") Double maxPrice,
+                @Param("minRating") Double minRating,
+                @Param("categoryIds") List<UUID> categoryIds,
+                Pageable pageable);
 }
