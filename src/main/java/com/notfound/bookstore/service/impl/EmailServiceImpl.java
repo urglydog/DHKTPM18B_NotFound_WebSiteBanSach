@@ -55,7 +55,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendHtmlEmail(String email, String token) {
         try {
-            String verifyLink = "http://localhost:8080/api/auth/confirm-email?token=" + token;
+            String verifyLink = "http://3.26.33.103:8080/api/auth/confirm-email?token=" + token;
 
             String subject = "Xác thực tài khoản Bookstore";
             String content = """

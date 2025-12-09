@@ -227,7 +227,7 @@ public class AuthController {
     public void confirmEmail(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
         try {
             if (token == null || token.isEmpty()) {
-                String errorUrl = "http://localhost:3000/error?message=" +
+                String errorUrl = "https://nhasachcongdong.id.vn/error?message=" +
                         URLEncoder.encode("Token không hợp lệ", StandardCharsets.UTF_8);
                 response.sendRedirect(errorUrl);
                 return;
@@ -236,16 +236,16 @@ public class AuthController {
             String email = authService.validateEmailVerificationToken(token);
 
             // Redirect về trang success khi xác thực thành công
-            String successUrl = "http://localhost:3000/success?email=" +
+            String successUrl = "https://nhasachcongdong.id.vn/success?email=" +
                     URLEncoder.encode(email, StandardCharsets.UTF_8);
             response.sendRedirect(successUrl);
 
         } catch (AppException e) {
-            String errorUrl = "http://localhost:3000/error?message=" +
+            String errorUrl = "https://nhasachcongdong.id.vn/error?message=" +
                     URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
             response.sendRedirect(errorUrl);
         } catch (Exception e) {
-            String errorUrl = "http://localhost:3000/error?message=" +
+            String errorUrl = "https://nhasachcongdong.id.vn/error?message=" +
                     URLEncoder.encode("Xác thực email thất bại", StandardCharsets.UTF_8);
             response.sendRedirect(errorUrl);
         }
@@ -254,7 +254,7 @@ public class AuthController {
     /**
      * Xử lý callback từ Google OAuth
      * Đăng nhập hoặc tạo tài khoản mới thông qua Google
-     * Sau đó redirect về frontend (ví dụ: http://localhost:3000/)
+     * Sau đó redirect về frontend (ví dụ: https://nhasachcongdong.id.vn/)
      *
      * Lưu ý: để đơn giản, token được truyền về FE qua query param.
      * FE cần đọc token từ URL và lưu vào localStorage/sessionStorage.
@@ -263,7 +263,7 @@ public class AuthController {
     public void googleCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
         // Nếu không có code hoặc rỗng → redirect về FE với lỗi
         if (code == null || code.isEmpty()) {
-            String errorUrl = "http://localhost:3000/?error=" +
+            String errorUrl = "https://nhasachcongdong.id.vn/?error=" +
                     URLEncoder.encode("google_invalid_code", StandardCharsets.UTF_8);
             response.sendRedirect(errorUrl);
             return;
@@ -275,7 +275,7 @@ public class AuthController {
             // Xây dựng URL với token và refreshToken
             // Không gửi user object trong URL để tránh URL quá dài
             // Frontend sẽ tự gọi /api/user/me để lấy user info
-            StringBuilder redirectUrl = new StringBuilder("http://localhost:3000/?");
+            StringBuilder redirectUrl = new StringBuilder("https://nhasachcongdong.id.vn/?");
             redirectUrl.append("token=").append(URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
 
             if (authResponse.getRefreshToken() != null) {
@@ -287,13 +287,13 @@ public class AuthController {
         } catch (com.notfound.bookstore.exception.AppException e) {
             // Log lỗi từ AppException
             log.error("Google OAuth AppException: {}", e.getMessage(), e);
-            String errorUrl = "http://localhost:3000/?error=" +
+            String errorUrl = "https://nhasachcongdong.id.vn/?error=" +
                     URLEncoder.encode("google_login_failed", StandardCharsets.UTF_8);
             response.sendRedirect(errorUrl);
         } catch (Exception e) {
             // Log lỗi không mong đợi
             log.error("Unexpected error during Google OAuth: {}", e.getMessage(), e);
-            String errorUrl = "http://localhost:3000/?error=" +
+            String errorUrl = "https://nhasachcongdong.id.vn/?error=" +
                     URLEncoder.encode("google_login_failed", StandardCharsets.UTF_8);
             response.sendRedirect(errorUrl);
         }

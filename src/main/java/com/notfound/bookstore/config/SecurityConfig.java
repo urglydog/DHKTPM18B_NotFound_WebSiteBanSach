@@ -127,8 +127,8 @@ public class SecurityConfig {
         }
 
         /**
-         * Cấu hình CORS cho phép Frontend (localhost:3000) truy cập Backend
-         * (localhost:8080)
+         * Cấu hình CORS cho phép Frontend truy cập Backend
+         *
          */
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
@@ -141,7 +141,10 @@ public class SecurityConfig {
                                 "http://127.0.0.1:3000",
                                 "http://localhost:8080",
                                 "https://editor.swagger.io",
-                                "https://*.swaggerhub.com"));
+                                "https://*.swaggerhub.com",
+                                "https://nhasachcongdong.id.vn",
+                        "https://www-not-found-web-site-ban-sach-fe.vercel.app"
+                        ));
 
                 // Cho phép các HTTP methods
                 configuration.setAllowedMethods(Arrays.asList(
