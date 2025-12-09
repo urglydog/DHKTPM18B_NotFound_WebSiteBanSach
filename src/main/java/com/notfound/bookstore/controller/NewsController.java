@@ -42,16 +42,39 @@ public class NewsController {
     UserRepository userRepository; // ✅ THÊM VÀO ĐỂ LẤY USER ID
 
     /**
-     * 📰 GET /api/news - Lấy tất cả news (có phân trang)
+     * 📰 GET /api/news - Lấy tất cả news (có phân trang, filter)
      * Public endpoint - Không cần authentication
+     * Support filters: status, featured, sort
      */
     @GetMapping
     public ApiResponse<Page<NewsResponse>> getAllNews(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) News.Status status,
+            @RequestParam(required = false) Boolean featured,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String order
     ) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<NewsResponse> news = newsService.getAllNews(pageable);
+        // Use Java field names (camelCase) for JPA derived queries
+        org.springframework.data.domain.Sort.Direction direction = 
+            order.equalsIgnoreCase("asc") 
+                ? org.springframework.data.domain.Sort.Direction.ASC 
+                : org.springframework.data.domain.Sort.Direction.DESC;
+                
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by(direction, sort));
+        
+        Page<NewsResponse> news;
+        
+        // Apply filters
+        if (status != null && featured != null) {
+            news = newsService.getNewsByStatusAndFeatured(status, featured, pageable);
+        } else if (status != null) {
+            news = newsService.getNewsByStatus(status, pageable);
+        } else if (featured != null) {
+            news = newsService.getFeaturedNews(featured, pageable);
+        } else {
+            news = newsService.getAllNews(pageable);
+        }
 
         return ApiResponse.<Page<NewsResponse>>builder()
                 .code(1000)
@@ -314,7 +337,114 @@ public class NewsController {
     }
 
     /**
-     * DTO cho stats response
+     * 📊 GET /api/news/statistics - Lấy thống kê tổng quan về tin tức (Admin only)
+     * Endpoint này cung cấp đầy đủ thống kê cho Admin Dashboard
+     */
+    @GetMapping("/statistics")
+    public ApiResponse<com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse> getNewsStatistics() {
+        log.info("📊 Fetching comprehensive news statistics");
+        com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse stats = newsService.getNewsStatistics();
+        return ApiResponse.<com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse>builder()
+                .code(200)
+                .message("Lấy thống kê tin tức thành công")
+                .result(stats)
+                .build();
+    }
+
+    /**
+     * 🔍 GET /api/news/advanced-search - Tìm kiếm nâng cao với nhiều tiêu chí
+     * Support: keyword, category, status, tags, sort
+     */
+    @GetMapping("/advanced-search")
+    public ApiResponse<Page<NewsResponse>> advancedSearch(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) News.Status status,
+            @RequestParam(required = false) String tag,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder
+    ) {
+        // Use Java field names (camelCase) - JPA will map to DB columns
+        Pageable pageable = PageRequest.of(page, size, 
+            sortOrder.equalsIgnoreCase("asc") 
+                ? org.springframework.data.domain.Sort.by(sortBy).ascending()
+                : org.springframework.data.domain.Sort.by(sortBy).descending()
+        );
+
+        Page<NewsResponse> news;
+        
+        if (tag != null && !tag.isEmpty()) {
+            // Tìm theo tag
+            news = newsService.searchNewsByTag(tag, pageable);
+        } else {
+            // Tìm theo keyword, category, status (kết hợp tất cả)
+            news = newsService.searchNews(keyword, category, status, pageable);
+        }
+
+        return ApiResponse.<Page<NewsResponse>>builder()
+                .code(1000)
+                .message("Tìm kiếm tin tức thành công")
+                .result(news)
+                .build();
+    }
+
+    /**
+     * 📂 GET /api/news/category/{category} - Lấy news theo category
+     */
+    @GetMapping("/category/{category}")
+    public ApiResponse<Page<NewsResponse>> getNewsByCategory(
+            @PathVariable String category,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<NewsResponse> news = newsService.getNewsByCategory(category, pageable);
+
+        return ApiResponse.<Page<NewsResponse>>builder()
+                .code(1000)
+                .message("Lấy tin tức theo danh mục thành công")
+                .result(news)
+                .build();
+    }
+
+    /**
+     * 🏷️ GET /api/news/tag/{tag} - Lấy news theo tag
+     */
+    @GetMapping("/tag/{tag}")
+    public ApiResponse<Page<NewsResponse>> getNewsByTag(
+            @PathVariable String tag,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<NewsResponse> news = newsService.searchNewsByTag(tag, pageable);
+
+        return ApiResponse.<Page<NewsResponse>>builder()
+                .code(1000)
+                .message("Lấy tin tức theo tag thành công")
+                .result(news)
+                .build();
+    }
+
+    /**
+     * ♻️ PUT /api/news/{id}/restore - Khôi phục news đã archive (Admin only)
+     */
+    @PutMapping("/{id}/restore")
+    public ApiResponse<NewsResponse> restoreNews(@PathVariable UUID id) {
+        log.info("♻️ Restoring news: {}", id);
+        NewsResponse restored = newsService.restoreNews(id);
+
+        return ApiResponse.<NewsResponse>builder()
+                .code(1000)
+                .message("Khôi phục tin tức thành công")
+                .result(restored)
+                .build();
+    }
+
+    /**
+     * DTO cho stats response (legacy - giữ lại để tương thích)
      */
     @lombok.Data
     @lombok.Builder

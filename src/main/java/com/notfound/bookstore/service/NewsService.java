@@ -86,11 +86,19 @@ public interface NewsService {
         NewsResponse publishNews(UUID newsId);
 
         /**
-         * Archive news (chuyển sang ARCHIVED)
+         * Archive news (chuyển sang ARCHIVED) - SOFT DELETE
+         * Không xóa thật mà chỉ ẩn tin tức, không hiển thị trong thống kê
          * @param newsId - ID của news
          * @return NewsResponse
          */
         NewsResponse archiveNews(UUID newsId);
+
+        /**
+         * Khôi phục news đã archive
+         * @param newsId - ID của news
+         * @return NewsResponse
+         */
+        NewsResponse restoreNews(UUID newsId);
 
         /**
          * Đếm số lượng news theo status
@@ -98,6 +106,65 @@ public interface NewsService {
          * @return long
          */
         long countByStatus(News.Status status);
+
+        /**
+         * Tìm kiếm news theo nhiều tiêu chí
+         * @param keyword - từ khóa tìm trong title/content
+         * @param category - danh mục
+         * @param status - trạng thái
+         * @param pageable - phân trang & sắp xếp
+         * @return Page<NewsResponse>
+         */
+        Page<NewsResponse> searchNews(String keyword, String category, News.Status status, Pageable pageable);
+
+        /**
+         * Tìm kiếm news theo tags
+         * @param tag - tag cần tìm
+         * @param pageable - phân trang
+         * @return Page<NewsResponse>
+         */
+        Page<NewsResponse> searchNewsByTag(String tag, Pageable pageable);
+
+        /**
+         * Tìm kiếm news theo title hoặc tags (FULLTEXT search)
+         * @param keyword - từ khóa
+         * @param pageable - phân trang
+         * @return Page<NewsResponse>
+         */
+        Page<NewsResponse> searchNewsByTitleOrTags(String keyword, Pageable pageable);
+
+        /**
+         * Lấy news theo category
+         * @param category - danh mục
+         * @param pageable - phân trang
+         * @return Page<NewsResponse>
+         */
+        Page<NewsResponse> getNewsByCategory(String category, Pageable pageable);
+
+        /**
+         * Lấy news theo status
+         * @param status - trạng thái (PUBLISHED, DRAFT, ARCHIVED)
+         * @param pageable - phân trang
+         * @return Page<NewsResponse>
+         */
+        Page<NewsResponse> getNewsByStatus(News.Status status, Pageable pageable);
+
+        /**
+         * Lấy news theo featured flag
+         * @param featured - true/false
+         * @param pageable - phân trang
+         * @return Page<NewsResponse>
+         */
+        Page<NewsResponse> getFeaturedNews(Boolean featured, Pageable pageable);
+
+        /**
+         * Lấy news theo status và featured
+         * @param status - trạng thái
+         * @param featured - true/false
+         * @param pageable - phân trang
+         * @return Page<NewsResponse>
+         */
+        Page<NewsResponse> getNewsByStatusAndFeatured(News.Status status, Boolean featured, Pageable pageable);
 
         /**
          * Upload nhiều ảnh cho news
@@ -113,6 +180,12 @@ public interface NewsService {
          * @param imageId - ID của ảnh cần xóa
          */
         void deleteNewsImage(UUID newsId, Long imageId);
+
+        /**
+         * Lấy thống kê tổng quan về tin tức (cho Admin Dashboard)
+         * @return NewsStatsResponse chứa tất cả thống kê
+         */
+        com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse getNewsStatistics();
 
 }
 

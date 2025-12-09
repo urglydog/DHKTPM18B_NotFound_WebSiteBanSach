@@ -27,6 +27,22 @@ public class CreateNewsRequest {
     @NotBlank(message = "Content is required")
     String content; // HTML content
 
+    // Tóm tắt ngắn
+    String summary;
+
+    // Danh mục tin tức (required)
+    @NotBlank(message = "Category is required")
+    String category;
+
+    // Tags (JSON array hoặc List<String>)
+    List<String> tags;
+
+    // Tin nổi bật
+    Boolean featured;
+
+    // Trạng thái (PUBLISHED, DRAFT, ARCHIVED)
+    String status;
+
     // Optional: metadata JSON string
     String metadata;
 

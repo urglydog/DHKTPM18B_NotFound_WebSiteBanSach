@@ -30,8 +30,9 @@ public class News {
     @Column(nullable = false)
     String title;
 
-//    @Column(columnDefinition = "TEXT", nullable = false)
-//    String content;
+    // Tóm tắt ngắn gọn
+    @Column(columnDefinition = "TEXT")
+    String summary;
 
     // THAY ĐỔI: Lưu HTML content
     @Column(columnDefinition = "LONGTEXT", nullable = false)
@@ -40,6 +41,23 @@ public class News {
     // MỚI: Lưu metadata dạng JSON (cho Table of Contents, SEO...)
     @Column(columnDefinition = "TEXT")
     String metadata; // JSON string: {sections: [...], description: "..."}
+
+    // Category: Sách mới, Tác giả, Sự kiện, Khuyến mãi, Review, Hướng dẫn...
+    @Column(nullable = false)
+    String category;
+
+    // Tags: Danh sách từ khóa để tìm kiếm (lưu dưới dạng JSON array)
+    @Convert(converter = com.notfound.bookstore.model.converter.StringListConverter.class)
+    @Column(columnDefinition = "JSON")
+    List<String> tags = new ArrayList<>();
+
+    // Số lượt xem
+    @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    Long views = 0L;
+
+    // Đánh dấu tin nổi bật
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    Boolean featured = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
