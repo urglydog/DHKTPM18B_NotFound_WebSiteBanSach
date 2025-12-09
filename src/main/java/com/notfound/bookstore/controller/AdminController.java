@@ -7,7 +7,9 @@ import com.notfound.bookstore.model.dto.request.categoryrequest.UpdateCategoryRe
 import com.notfound.bookstore.model.dto.response.ApiResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.BookFullDetailResponse;
 import com.notfound.bookstore.model.dto.response.categoryresponse.CategoryResponse;
+import com.notfound.bookstore.model.dto.response.statistics.RevenueStatisticResponse;
 import com.notfound.bookstore.service.AdminService;
+import java.time.LocalDate;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -251,6 +253,21 @@ public class AdminController {
                 .code(1000)
                 .message("Upload avatar thành công")
                 .result(avatarUrl)
+                .build();
+    }
+
+    @GetMapping("/statistics/revenue")
+    public ApiResponse<RevenueStatisticResponse> getRevenueStatistics(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate
+    ) {
+        if (startDate == null) startDate = LocalDate.now().withDayOfMonth(1);
+        if (endDate == null) endDate = LocalDate.now();
+        RevenueStatisticResponse response = adminService.getRevenueStatistics(startDate, endDate);
+        return ApiResponse.<RevenueStatisticResponse>builder()
+                .code(1000)
+                .message("Lấy thống kê doanh thu thành công")
+                .result(response)
                 .build();
     }
 }
