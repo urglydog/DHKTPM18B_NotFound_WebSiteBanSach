@@ -44,6 +44,7 @@ public class ChatbotServiceImpl implements ChatbotService {
     // Store chat history per session
     private final Map<String, List<ChatMessage>> chatHistoryMap = new ConcurrentHashMap<>();
     private static final int MAX_HISTORY_SIZE = 20; // Stores up to 20 messages (user + AI)
+    private static final int CLEAR_HISTORY_THRESHOLD = 30; // Clear history when reaching this threshold
 
     private record ChatMessage(String role, String content) {
     }
@@ -64,9 +65,22 @@ public class ChatbotServiceImpl implements ChatbotService {
             // Add user message to history
             chatHistory.add(new ChatMessage("user", userMessage));
 
-            // Truncate history if needed
-            while (chatHistory.size() > MAX_HISTORY_SIZE) {
-                chatHistory.remove(0);
+            // Clear history if it exceeds threshold (keep only recent messages)
+            if (chatHistory.size() > CLEAR_HISTORY_THRESHOLD) {
+                // Keep only the last MAX_HISTORY_SIZE messages
+                int keepFromIndex = chatHistory.size() - MAX_HISTORY_SIZE;
+                List<ChatMessage> recentHistory = new ArrayList<>();
+                for (int i = keepFromIndex; i < chatHistory.size(); i++) {
+                    recentHistory.add(chatHistory.get(i));
+                }
+                chatHistory.clear();
+                chatHistory.addAll(recentHistory);
+                log.debug("Cleared chat history for session {}: kept {} recent messages", sessionId, recentHistory.size());
+            } else {
+                // Truncate history if needed (normal case)
+                while (chatHistory.size() > MAX_HISTORY_SIZE) {
+                    chatHistory.remove(0);
+                }
             }
 
             // Get current user (if authenticated)
@@ -159,9 +173,22 @@ public class ChatbotServiceImpl implements ChatbotService {
             // Add AI response to history
             chatHistory.add(new ChatMessage("assistant", aiResponse));
 
-            // Truncate history again
-            while (chatHistory.size() > MAX_HISTORY_SIZE) {
-                chatHistory.remove(0);
+            // Clear history if it exceeds threshold (keep only recent messages)
+            if (chatHistory.size() > CLEAR_HISTORY_THRESHOLD) {
+                // Keep only the last MAX_HISTORY_SIZE messages
+                int keepFromIndex = chatHistory.size() - MAX_HISTORY_SIZE;
+                List<ChatMessage> recentHistory = new ArrayList<>();
+                for (int i = keepFromIndex; i < chatHistory.size(); i++) {
+                    recentHistory.add(chatHistory.get(i));
+                }
+                chatHistory.clear();
+                chatHistory.addAll(recentHistory);
+                log.debug("Cleared chat history for session {}: kept {} recent messages", sessionId, recentHistory.size());
+            } else {
+                // Truncate history if needed (normal case)
+                while (chatHistory.size() > MAX_HISTORY_SIZE) {
+                    chatHistory.remove(0);
+                }
             }
 
             // Update history map
