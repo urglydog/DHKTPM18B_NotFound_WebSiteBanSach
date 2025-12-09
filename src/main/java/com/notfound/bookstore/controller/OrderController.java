@@ -24,6 +24,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -188,10 +190,22 @@ public class OrderController {
      * GET /api/orders/admin/status/{status}
      */
     @GetMapping("/admin/status/{status}")
-    public ApiResponse<List<OrderResponse>> getOrdersByStatus(@PathVariable String status) {
+    public ApiResponse<List<OrderResponse>> getOrdersByStatus(
+            @PathVariable String status,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
         try {
             OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
-            List<OrderResponse> orders = orderService.getOrdersByStatus(orderStatus);
+            List<OrderResponse> orders;
+            
+            // Nếu có date range, filter theo date range
+            if (startDate != null && endDate != null) {
+                LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
+                LocalDateTime end = LocalDate.parse(endDate).atTime(23, 59, 59);
+                orders = orderService.getOrdersByStatus(orderStatus, start, end);
+            } else {
+                orders = orderService.getOrdersByStatus(orderStatus);
+            }
 
             return ApiResponse.<List<OrderResponse>>builder()
                     .code(1000)
@@ -203,22 +217,46 @@ public class OrderController {
                     .code(4003)
                     .message("Trạng thái không hợp lệ")
                     .build();
+        } catch (Exception e) {
+            return ApiResponse.<List<OrderResponse>>builder()
+                    .code(4004)
+                    .message("Lỗi định dạng ngày tháng: " + e.getMessage())
+                    .build();
         }
     }
 
     /**
      * ADMIN: Lấy tổng doanh thu
-     * GET /api/orders/admin/revenue
+     * GET /api/orders/admin/revenue?startDate=2024-01-01&endDate=2024-01-31
      */
     @GetMapping("/admin/revenue")
-    public ApiResponse<Double> getTotalRevenue() {
-        Double revenue = orderService.getTotalRevenue();
+    public ApiResponse<Double> getTotalRevenue(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        try {
+            Double revenue;
+            
+            // Nếu có date range, filter theo date range
+            if (startDate != null && endDate != null) {
+                LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
+                LocalDateTime end = LocalDate.parse(endDate).atTime(23, 59, 59);
+                revenue = orderService.getTotalRevenue(start, end);
+            } else {
+                revenue = orderService.getTotalRevenue();
+            }
 
-        return ApiResponse.<Double>builder()
-                .code(1000)
-                .message("Lấy tổng doanh thu thành công")
-                .result(revenue)
-                .build();
+            return ApiResponse.<Double>builder()
+                    .code(1000)
+                    .message("Lấy tổng doanh thu thành công")
+                    .result(revenue)
+                    .build();
+        } catch (Exception e) {
+            return ApiResponse.<Double>builder()
+                    .code(4004)
+                    .message("Lỗi định dạng ngày tháng: " + e.getMessage())
+                    .result(0.0)
+                    .build();
+        }
     }
 
     /**

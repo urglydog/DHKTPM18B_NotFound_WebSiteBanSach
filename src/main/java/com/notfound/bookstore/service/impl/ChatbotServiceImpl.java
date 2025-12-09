@@ -109,11 +109,23 @@ public class ChatbotServiceImpl implements ChatbotService {
             }
             aiMessages.add(new UserMessage(enhancedUserMessage));
 
+            // Get current date and time for context
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy", java.util.Locale.forLanguageTag("vi"));
+            java.time.format.DateTimeFormatter timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+            String currentDate = now.format(dateFormatter);
+            String currentTime = now.format(timeFormatter);
+            String currentDateTime = String.format("%s, lúc %s", currentDate, currentTime);
+
             // Build system prompt with database context
             SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(
-                    """
+                    String.format("""
                             Bạn là một trợ lý AI thân thiện và hữu ích cho một ứng dụng nhà sách trực tuyến.
                             Tên của bạn là BookBot.
+
+                            THÔNG TIN THỜI GIAN HIỆN TẠI:
+                            - Ngày và giờ hiện tại: %s
+                            - Khi người dùng hỏi về ngày tháng, hãy sử dụng thông tin này để trả lời chính xác.
 
                             Bạn có thể giúp khách hàng:
                             - Tìm kiếm sách theo tên, tác giả, thể loại (dựa trên dữ liệu thực từ database)
@@ -121,6 +133,7 @@ public class ChatbotServiceImpl implements ChatbotService {
                             - Trả lời câu hỏi về đơn hàng của họ (nếu đã đăng nhập)
                             - Cung cấp thông tin về khuyến mãi, thể loại, tác giả (từ database)
                             - Hỗ trợ tư vấn về sách và đọc sách
+                            - Trả lời câu hỏi về ngày tháng, thời gian hiện tại
 
                             QUAN TRỌNG:
                             - Luôn sử dụng dữ liệu thực từ hệ thống được cung cấp trong [Dữ liệu từ hệ thống]
@@ -128,7 +141,9 @@ public class ChatbotServiceImpl implements ChatbotService {
                             - Nếu không có dữ liệu, hãy thành thật nói rằng bạn không tìm thấy thông tin
                             - Luôn trả lời bằng tiếng Việt một cách thân thiện, chuyên nghiệp và hữu ích
                             - Khi đề cập đến sách cụ thể, hãy cung cấp thông tin chính xác từ database (tên, giá, tác giả, đánh giá)
-                            """);
+                            - KHÔNG sử dụng markdown formatting (không dùng dấu **, ***, __, hoặc các ký hiệu markdown khác)
+                            - Trả lời bằng văn bản thuần túy, dễ đọc, không có định dạng đặc biệt
+                            """, currentDateTime));
 
             // Get AI response
             ChatClient chatClient = ChatClient.builder(chatModel)

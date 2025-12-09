@@ -9,6 +9,7 @@ import com.notfound.bookstore.model.dto.response.userresponse.UserResponse;
 import com.notfound.bookstore.model.dto.response.userresponse.UserStatsResponse;
 import org.springframework.data.domain.Page;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -68,6 +69,11 @@ public interface UserService {
      * Lấy thống kê tổng quan về users
      */
     UserStatsResponse getUserStatistics();
+
+    /**
+     * Lấy thống kê tổng quan về users trong khoảng thời gian
+     */
+    UserStatsResponse getUserStatistics(LocalDateTime startDate, LocalDateTime endDate);
 
     /**
      * Lấy danh sách top users chi tiêu nhiều nhất
