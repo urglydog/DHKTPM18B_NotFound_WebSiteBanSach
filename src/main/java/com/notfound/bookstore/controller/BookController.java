@@ -1,6 +1,7 @@
 package com.notfound.bookstore.controller;
 
 import com.notfound.bookstore.model.dto.request.bookrequest.BookFilterRequest;
+import com.notfound.bookstore.model.dto.request.bookrequest.BookRequest;
 import com.notfound.bookstore.model.dto.request.bookrequest.BookSearchRequest;
 import com.notfound.bookstore.model.dto.request.bookrequest.BookSortRequest;
 import com.notfound.bookstore.model.dto.response.ApiResponse;
@@ -34,6 +35,16 @@ public class BookController {
                                 .message("Lấy danh sách sách thành công")
                                 .result(bookService.getAllBooks(page, pageSize))
                                 .build();
+        }
+
+        @GetMapping("/options")
+        public ApiResponse<PageResponse<BookSummaryResponse>> getAllBookOptions(
+                @Valid @ModelAttribute BookRequest bookRequest) {
+            return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
+                    .code(1000)
+                    .message("Lấy danh sách sách thành công")
+                    .result(bookService.getAllBooksOption(bookRequest))
+                    .build();
         }
 
         @GetMapping("/search")
@@ -110,6 +121,26 @@ public class BookController {
                                 .code(1000)
                                 .message("Lấy danh sách sách theo danh mục phổ biến thành công")
                                 .result(bookService.getBooksByPopularCategories(categoryLimit, bookLimit))
+                                .build();
+        }
+
+        /**
+         * Lấy danh sách sách theo ID danh mục
+         * 
+         * @param categoryId ID của danh mục
+         * @param page       Số trang (mặc định: 0)
+         * @param pageSize   Kích thước trang (mặc định: 10)
+         * @return Danh sách sách thuộc danh mục
+         */
+        @GetMapping("/by-category/{categoryId}")
+        public ApiResponse<PageResponse<BookSummaryResponse>> getBooksByCategory(
+                        @PathVariable String categoryId,
+                        @RequestParam(required = false, defaultValue = "0") Integer page,
+                        @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
+                return ApiResponse.<PageResponse<BookSummaryResponse>>builder()
+                                .code(1000)
+                                .message("Lấy danh sách sách theo danh mục thành công")
+                                .result(bookService.getBooksByCategory(categoryId, page, pageSize))
                                 .build();
         }
 }

@@ -14,6 +14,7 @@ public interface UserMapper {
     @Mapping(source = "fullName", target = "fullName")
     @Mapping(source = "phoneNumber", target = "phoneNumber")
     @Mapping(source = "role", target = "role")
+    @Mapping(source = "gender", target = "gender")
     @Mapping(source = "status", target = "status")
     @Mapping(source = "dateOfBirth", target = "dateOfBirth")
     @Mapping(source = "points", target = "points")

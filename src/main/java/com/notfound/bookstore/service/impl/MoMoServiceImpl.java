@@ -39,6 +39,7 @@ public class MoMoServiceImpl implements MoMoService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
+    private final ShipmentServiceImpl shipmentService;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -272,6 +273,15 @@ public class MoMoServiceImpl implements MoMoService {
                 Order order = payment.getOrder();
                 order.setStatus(com.notfound.bookstore.model.enums.OrderStatus.PROCESSING);
                 orderRepository.save(order);
+
+                // 6. Create shipment order (same as VNPay)
+                try {
+                    shipmentService.createShipmentOrder(order);
+                    log.info("Shipment order created for order: {}", order.getOrderID());
+                } catch (Exception e) {
+                    log.error("Failed to create shipment for order {}: {}", order.getOrderID(), e.getMessage(), e);
+                    // Don't fail the payment if shipment creation fails
+                }
 
                 log.info("Payment completed for order: {}. Order status changed to PROCESSING", order.getOrderID());
             } else {
