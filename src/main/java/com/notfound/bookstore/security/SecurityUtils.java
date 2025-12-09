@@ -34,21 +34,6 @@ public class SecurityUtils {
     }
 
     /**
-     * Lấy username của user hiện tại đang đăng nhập
-     *
-     * @return Optional<String> username
-     */
-    public java.util.Optional<String> getCurrentUserLogin() {
-        org.springframework.security.core.Authentication authentication = SecurityContextHolder.getContext()
-                .getAuthentication();
-        if (authentication == null) {
-            return java.util.Optional.empty();
-        }
-        String principal = authentication.getName();
-        return java.util.Optional.ofNullable(principal);
-    }
-
-    /**
      * Lấy User từ JWT token truyền vào
      *
      * @param jwt JWT token
