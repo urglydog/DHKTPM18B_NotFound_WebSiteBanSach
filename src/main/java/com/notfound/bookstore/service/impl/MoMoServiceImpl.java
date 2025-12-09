@@ -16,6 +16,8 @@ import com.notfound.bookstore.model.mapper.PaymentMapper;
 import com.notfound.bookstore.repository.OrderRepository;
 import com.notfound.bookstore.repository.PaymentRepository;
 import com.notfound.bookstore.service.MoMoService;
+import com.notfound.bookstore.service.OrderTimeoutService;
+import com.notfound.bookstore.service.ShipmentService;
 import com.notfound.bookstore.util.MoMoUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +41,10 @@ public class MoMoServiceImpl implements MoMoService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
-    private final ShipmentServiceImpl shipmentService;
+    private final ShipmentService shipmentService;
+    private final OrderTimeoutService orderTimeoutService;
+
+    private static final int PAYMENT_TIMEOUT_MINUTES = 15; // Timeout sau 15 phút
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -127,6 +132,10 @@ public class MoMoServiceImpl implements MoMoService {
                     .build();
 
             payment = paymentRepository.save(payment);
+
+            // Schedule order timeout after 15 minutes
+            orderTimeoutService.scheduleOrderTimeout(order.getOrderID(), PAYMENT_TIMEOUT_MINUTES);
+            log.info("Scheduled timeout for order {} in {} minutes", order.getOrderID(), PAYMENT_TIMEOUT_MINUTES);
 
             // 5. Generate MoMo payment URL with redirectUrl from Frontend
             String paymentUrl = createMoMoPaymentUrl(transactionId, payment.getAmount(), request.getRedirectUrl());
@@ -273,6 +282,10 @@ public class MoMoServiceImpl implements MoMoService {
                 Order order = payment.getOrder();
                 order.setStatus(com.notfound.bookstore.model.enums.OrderStatus.PROCESSING);
                 orderRepository.save(order);
+
+                // Cancel the timeout since payment is successful
+                orderTimeoutService.cancelOrderTimeout(order.getOrderID());
+                log.info("Cancelled timeout for order {} - payment successful", order.getOrderID());
 
                 // 6. Create shipment order (same as VNPay)
                 try {
