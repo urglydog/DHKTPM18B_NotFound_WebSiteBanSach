@@ -7,6 +7,7 @@ import com.notfound.bookstore.model.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,9 +53,19 @@ public interface OrderService {
     List<OrderResponse> getOrdersByStatus(OrderStatus status);
 
     /**
+     * Lấy đơn hàng theo trạng thái và khoảng thời gian
+     */
+    List<OrderResponse> getOrdersByStatus(OrderStatus status, LocalDateTime startDate, LocalDateTime endDate);
+
+    /**
      * Tính tổng doanh thu
      */
     Double getTotalRevenue();
+
+    /**
+     * Tính tổng doanh thu trong khoảng thời gian
+     */
+    Double getTotalRevenue(LocalDateTime startDate, LocalDateTime endDate);
 
     /**
      * Đếm số đơn hàng của user

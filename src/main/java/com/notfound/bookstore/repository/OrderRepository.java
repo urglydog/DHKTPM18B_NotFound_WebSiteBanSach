@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,4 +33,25 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     // Đếm số orders theo customer
     Long countByCustomerId(UUID customerId);
+
+    // ===== THỐNG KÊ THEO DATE RANGE =====
+    
+    // Tìm orders theo status và date range
+    @Query("SELECT o FROM Order o WHERE o.status = :status AND o.orderDate >= :startDate AND o.orderDate <= :endDate")
+    List<Order> findByStatusAndOrderDateBetween(@Param("status") OrderStatus status, 
+                                                @Param("startDate") LocalDateTime startDate, 
+                                                @Param("endDate") LocalDateTime endDate);
+
+    // Tính tổng doanh thu trong khoảng thời gian
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE " +
+           "(o.status = com.notfound.bookstore.model.enums.OrderStatus.COMPLETED OR " +
+           "o.status = com.notfound.bookstore.model.enums.OrderStatus.DELIVERED) AND " +
+           "o.orderDate >= :startDate AND o.orderDate <= :endDate")
+    Double getTotalRevenueByDateRange(@Param("startDate") LocalDateTime startDate, 
+                                      @Param("endDate") LocalDateTime endDate);
+
+    // Tìm tất cả orders trong khoảng thời gian
+    @Query("SELECT o FROM Order o WHERE o.orderDate >= :startDate AND o.orderDate <= :endDate")
+    List<Order> findByOrderDateBetween(@Param("startDate") LocalDateTime startDate, 
+                                       @Param("endDate") LocalDateTime endDate);
 }
