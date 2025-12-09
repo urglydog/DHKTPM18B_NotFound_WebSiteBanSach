@@ -100,7 +100,7 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     //Tìm sách còn hàng
     Page<Book> findByStockQuantityGreaterThan(Integer minStock, Pageable pageable);
 
-    //Tìm theo ISBN
+    // Tìm theo ISBN
     Book findByIsbn(String isbn);
 
     // Sắp xếp theo giá tăng dần
@@ -114,12 +114,6 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
 
     // Sắp xếp theo ngày phát hành (cũ nhất trước)
     Page<Book> findAllByOrderByPublishDateAsc(Pageable pageable);
-
-    // Sắp xếp theo tên sách (A → Z)
-    Page<Book> findAllByOrderByTitleAsc(Pageable pageable);
-
-    // Sắp xếp theo tên sách (Z → A)
-    Page<Book> findAllByOrderByTitleDesc(Pageable pageable);
 
     /**
      * Atomic update to decrease stock quantity - prevents race condition
@@ -141,14 +135,20 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     @Query("SELECT b FROM Book b LEFT JOIN b.reviews r GROUP BY b.id ORDER BY AVG(r.rating) DESC")
     Page<Book> findAllOrderByAverageRatingDesc(Pageable pageable);
 
+    // Sắp xếp theo tên sách (A → Z)
+    Page<Book> findAllByOrderByTitleAsc(Pageable pageable);
+
+    // Sắp xếp theo tên sách (Z → A)
+    Page<Book> findAllByOrderByTitleDesc(Pageable pageable);
+
     // Sắp xếp theo đánh giá trung bình tăng dần (thấp → cao)
     @Query("SELECT b FROM Book b LEFT JOIN b.reviews r GROUP BY b.id ORDER BY AVG(r.rating) ASC")
     Page<Book> findAllOrderByAverageRatingAsc(Pageable pageable);
 
     // Lấy tất cả sách với thông tin rating
     @Query("SELECT b as book, COALESCE(AVG(r.rating), 0) as averageRating, COUNT(r) as reviewCount " +
-            "FROM Book b LEFT JOIN b.reviews r " +
-            "GROUP BY b.id")
+                    "FROM Book b LEFT JOIN b.reviews r " +
+                    "GROUP BY b.id")
     Page<BookWithRating> findAllBooksWithRating(Pageable pageable);
 
     // Sách gợi ý (Random)

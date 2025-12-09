@@ -26,6 +26,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,8 +73,13 @@ public class NewsServiceImpl implements NewsService {
         News news = News.builder()
                 .title(request.getTitle())
                 .content(processed.getHtmlContent()) // <-- LƯU HTML ĐÃ CÓ ID
+                .summary(request.getSummary())
+                .category(request.getCategory())
+                .tags(request.getTags() != null ? request.getTags() : new ArrayList<>())
+                .views(0L) // <-- KHỞI TẠO VIEWS = 0
+                .featured(request.getFeatured() != null ? request.getFeatured() : false)
                 .metadata(processed.getMetadataJson()) // <-- LƯU METADATA KHỚP HTML
-                .status(News.Status.DRAFT)
+                .status(request.getStatus() != null ? News.Status.valueOf(request.getStatus()) : News.Status.DRAFT)
                 .author(author)
                 .images(new ArrayList<>())
                 .build();
@@ -111,6 +117,23 @@ public class NewsServiceImpl implements NewsService {
         // Cập nhật thông tin cơ bản
         news.setTitle(request.getTitle());
         news.setContent(request.getContent());
+        
+        // Cập nhật các field mới
+        if (request.getSummary() != null) {
+            news.setSummary(request.getSummary());
+        }
+        if (request.getCategory() != null) {
+            news.setCategory(request.getCategory());
+        }
+        if (request.getTags() != null) {
+            news.setTags(request.getTags());
+        }
+        if (request.getFeatured() != null) {
+            news.setFeatured(request.getFeatured());
+        }
+        if (request.getStatus() != null) {
+            news.setStatus(News.Status.valueOf(request.getStatus()));
+        }
 
         // Tự động generate lại metadata
         ProcessedNewsContent processed = processContent(request.getContent());
@@ -144,9 +167,15 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
+    @Transactional
     public NewsResponse getNewsById(UUID newsId) {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new AppException(ErrorCode.NEWS_NOT_FOUND));
+        
+        // Increment view count
+        news.setViews(news.getViews() + 1);
+        newsRepository.save(news);
+        
         return mapToResponse(news);
     }
 
@@ -208,6 +237,114 @@ public class NewsServiceImpl implements NewsService {
     @Override
     public long countByStatus(News.Status status) {
         return newsRepository.countByStatus(status);
+    }
+
+    @Override
+    @Transactional
+    public NewsResponse restoreNews(UUID newsId) {
+        log.info("Restoring archived news with ID: {}", newsId);
+        News news = newsRepository.findById(newsId)
+                .orElseThrow(() -> new AppException(ErrorCode.NEWS_NOT_FOUND));
+        
+        if (news.getStatus() != News.Status.ARCHIVED) {
+            throw new AppException(ErrorCode.BAD_REQUEST);
+        }
+        
+        news.setStatus(News.Status.DRAFT);
+        News restoredNews = newsRepository.save(news);
+        log.info("News restored successfully with ID: {}", newsId);
+        return mapToResponse(restoredNews);
+    }
+
+    @Override
+    public Page<NewsResponse> searchNews(String keyword, String category, News.Status status, Pageable pageable) {
+        log.info("Advanced search - keyword: {}, category: {}, status: {}", keyword, category, status);
+        
+        Page<News> newsPage;
+        
+        // Tìm kiếm có keyword
+        if (keyword != null && !keyword.isEmpty()) {
+            // Lấy tất cả kết quả search theo title
+            newsPage = newsRepository.searchByTitleForAdmin(keyword, pageable);
+            
+            // Filter thêm theo category và status nếu có
+            if ((category != null && !category.isEmpty()) || status != null) {
+                List<News> filteredList = newsPage.getContent().stream()
+                    .filter(news -> {
+                        boolean matchCategory = category == null || category.isEmpty() || news.getCategory().equals(category);
+                        boolean matchStatus = status == null || news.getStatus() == status;
+                        return matchCategory && matchStatus;
+                    })
+                    .collect(Collectors.toList());
+                
+                newsPage = new PageImpl<>(filteredList, pageable, filteredList.size());
+            }
+        } 
+        // Không có keyword, chỉ filter theo category/status
+        else if (category != null && !category.isEmpty() && status != null) {
+            newsPage = newsRepository.findByCategoryAndStatusOrderByCreatedAtDesc(category, status, pageable);
+        } else if (category != null && !category.isEmpty()) {
+            newsPage = newsRepository.findByCategoryOrderByCreatedAtDesc(category, pageable);
+        } else if (status != null) {
+            newsPage = newsRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        } else {
+            newsPage = newsRepository.findAll(pageable);
+        }
+        
+        return newsPage.map(this::mapToResponse);
+    }
+
+    @Override
+    public Page<NewsResponse> searchNewsByTag(String tag, Pageable pageable) {
+        log.info("Searching news by tag: {}", tag);
+        Page<News> newsPage = newsRepository.findByTag(tag).stream()
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> new org.springframework.data.domain.PageImpl<>(
+                                list.subList(
+                                        Math.min((int) pageable.getOffset(), list.size()),
+                                        Math.min((int) pageable.getOffset() + pageable.getPageSize(), list.size())
+                                ),
+                                pageable,
+                                list.size()
+                        )
+                ));
+        return newsPage.map(this::mapToResponse);
+    }
+
+    @Override
+    public Page<NewsResponse> searchNewsByTitleOrTags(String keyword, Pageable pageable) {
+        log.info("Searching news by title or tags: {}", keyword);
+        Page<News> newsPage = newsRepository.searchByTitleOrTags(keyword, pageable);
+        return newsPage.map(this::mapToResponse);
+    }
+
+    @Override
+    public Page<NewsResponse> getNewsByCategory(String category, Pageable pageable) {
+        log.info("Getting news by category: {}", category);
+        Page<News> newsPage = newsRepository.findByCategoryOrderByCreatedAtDesc(category, pageable);
+        return newsPage.map(this::mapToResponse);
+    }
+
+    @Override
+    public Page<NewsResponse> getNewsByStatus(News.Status status, Pageable pageable) {
+        log.info("Getting news by status: {}", status);
+        Page<News> newsPage = newsRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        return newsPage.map(this::mapToResponse);
+    }
+
+    @Override
+    public Page<NewsResponse> getFeaturedNews(Boolean featured, Pageable pageable) {
+        log.info("Getting featured news: {}", featured);
+        Page<News> newsPage = newsRepository.findByFeaturedOrderByViewsDesc(featured, pageable);
+        return newsPage.map(this::mapToResponse);
+    }
+
+    @Override
+    public Page<NewsResponse> getNewsByStatusAndFeatured(News.Status status, Boolean featured, Pageable pageable) {
+        log.info("Getting news by status: {} and featured: {}", status, featured);
+        Page<News> newsPage = newsRepository.findByStatusAndFeaturedOrderByCreatedAtDesc(status, featured, pageable);
+        return newsPage.map(this::mapToResponse);
     }
 
     /**
@@ -295,11 +432,14 @@ public class NewsServiceImpl implements NewsService {
      */
     private NewsResponse mapToResponse(News news) {
         NewsMetadata metadata = null;
-        if (news.getMetadata() != null && !news.getMetadata().isEmpty()) {
+        if (news.getMetadata() != null && !news.getMetadata().isEmpty() && !news.getMetadata().equals("{}")) {
             try {
+                log.debug("Parsing metadata for news ID: {} - Content: {}", news.getNewsID(), news.getMetadata());
                 metadata = objectMapper.readValue(news.getMetadata(), NewsMetadata.class);
             } catch (JsonProcessingException e) {
-                log.error("Error parsing metadata for news ID: {}", news.getNewsID(), e);
+                log.warn("Error parsing metadata for news ID: {} - Will continue with null metadata. Metadata content: {}. Error: {}", 
+                        news.getNewsID(), news.getMetadata(), e.getMessage());
+                // Don't fail the whole request, just log and continue with null metadata
             }
         }
 
@@ -315,11 +455,17 @@ public class NewsServiceImpl implements NewsService {
         return NewsResponse.builder()
                 .newsID(news.getNewsID())
                 .title(news.getTitle())
+                .summary(news.getSummary())
                 .content(news.getContent())
                 .metadata(metadata)
                 .status(news.getStatus().name())
+                .category(news.getCategory())
+                .tags(news.getTags())
+                .views(news.getViews())
+                .featured(news.getFeatured())
                 .createdAt(news.getCreatedAt())
                 .updatedAt(news.getUpdatedAt())
+                .publishedAt(news.getStatus() == News.Status.PUBLISHED ? news.getUpdatedAt() : null)
                 .authorName(news.getAuthor().getUsername())
                 .authorId(news.getAuthor().getId())
                 .images(imageResponses)
@@ -394,5 +540,123 @@ public class NewsServiceImpl implements NewsService {
         // Xóa record trong database
         newsImageRepository.delete(image);
         log.info("Deleted image {} for news: {}", imageId, newsId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse getNewsStatistics() {
+        log.info("Fetching news statistics");
+        
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime startOfToday = now.toLocalDate().atStartOfDay();
+        java.time.LocalDateTime startOfWeek = now.minusDays(now.getDayOfWeek().getValue() - 1).toLocalDate().atStartOfDay();
+        java.time.LocalDateTime startOfMonth = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
+        java.time.LocalDateTime startOfLastMonth = startOfMonth.minusMonths(1);
+        java.time.LocalDateTime endOfLastMonth = startOfMonth.minusDays(1).toLocalDate().atTime(23, 59, 59);
+        java.time.LocalDateTime last30Days = now.minusDays(30);
+        
+        // ========== Tổng quan ==========
+        long totalNews = newsRepository.count();
+        long publishedNews = newsRepository.countByStatus(News.Status.PUBLISHED);
+        long draftNews = newsRepository.countByStatus(News.Status.DRAFT);
+        long archivedNews = newsRepository.countByStatus(News.Status.ARCHIVED);
+        long featuredNews = newsRepository.countByFeaturedTrue();
+        
+        // ========== Theo thời gian ==========
+        long newNewsToday = newsRepository.countByCreatedAtBetween(startOfToday, now);
+        long newNewsThisWeek = newsRepository.countByCreatedAtBetween(startOfWeek, now);
+        long newNewsThisMonth = newsRepository.countByCreatedAtBetween(startOfMonth, now);
+        long newNewsLastMonth = newsRepository.countByCreatedAtBetween(startOfLastMonth, endOfLastMonth);
+        
+        // ========== Tương tác ==========
+        Long totalViews = newsRepository.sumAllViews();
+        if (totalViews == null) totalViews = 0L;
+        
+        Double avgViewsPerNews = totalNews > 0 ? (double) totalViews / totalNews : 0.0;
+        Long totalComments = 0L; // Dành cho tương lai
+        
+        // ========== Thống kê theo category ==========
+        List<Object[]> categoryData = newsRepository.countByCategory();
+        List<com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse.NewsByCategoryStats> newsByCategory = 
+            categoryData.stream().map(row -> {
+                String category = (String) row[0];
+                Long count = ((Number) row[1]).longValue();
+                Double percentage = totalNews > 0 ? (count * 100.0) / totalNews : 0.0;
+                return com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse.NewsByCategoryStats.builder()
+                    .category(category)
+                    .count(count)
+                    .percentage(Math.round(percentage * 100.0) / 100.0)
+                    .build();
+            }).collect(Collectors.toList());
+        
+        // ========== Top tin tức ==========
+        org.springframework.data.domain.PageRequest topPageable = 
+            org.springframework.data.domain.PageRequest.of(0, 10);
+        List<News> topNews = newsRepository.findAllByOrderByViewsDesc(topPageable).getContent();
+        List<com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse.TopViewedNews> topViewedNews = 
+            topNews.stream().map(news -> 
+                com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse.TopViewedNews.builder()
+                    .id(news.getNewsID().toString())
+                    .title(news.getTitle())
+                    .views(news.getViews())
+                    .category(news.getCategory())
+                    .publishedAt(news.getCreatedAt().toString())
+                    .build()
+            ).collect(Collectors.toList());
+        
+        // ========== Xu hướng lượt xem (30 ngày gần nhất) ==========
+        List<Object[]> trendData = newsRepository.getViewsTrendBetween(last30Days, now);
+        List<com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse.ViewsTrendData> viewsTrend = 
+            trendData.stream().map(row -> {
+                java.sql.Date sqlDate = (java.sql.Date) row[0];
+                Long views = ((Number) row[1]).longValue();
+                Long newsCount = ((Number) row[2]).longValue();
+                return com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse.ViewsTrendData.builder()
+                    .date(sqlDate.toString())
+                    .views(views)
+                    .newsCount(newsCount)
+                    .build();
+            }).collect(Collectors.toList());
+        
+        // ========== So sánh với tháng trước ==========
+        Double newsGrowthPercentage = 0.0;
+        if (newNewsLastMonth > 0) {
+            newsGrowthPercentage = ((double) (newNewsThisMonth - newNewsLastMonth) / newNewsLastMonth) * 100;
+            newsGrowthPercentage = Math.round(newsGrowthPercentage * 100.0) / 100.0;
+        } else if (newNewsThisMonth > 0) {
+            newsGrowthPercentage = 100.0;
+        }
+        
+        Long viewsThisMonth = newsRepository.sumViewsBetween(startOfMonth, now);
+        Long viewsLastMonth = newsRepository.sumViewsBetween(startOfLastMonth, endOfLastMonth);
+        if (viewsThisMonth == null) viewsThisMonth = 0L;
+        if (viewsLastMonth == null) viewsLastMonth = 0L;
+        
+        Double viewsGrowthPercentage = 0.0;
+        if (viewsLastMonth > 0) {
+            viewsGrowthPercentage = ((double) (viewsThisMonth - viewsLastMonth) / viewsLastMonth) * 100;
+            viewsGrowthPercentage = Math.round(viewsGrowthPercentage * 100.0) / 100.0;
+        } else if (viewsThisMonth > 0) {
+            viewsGrowthPercentage = 100.0;
+        }
+        
+        return com.notfound.bookstore.model.dto.response.newsresponse.NewsStatsResponse.builder()
+            .totalNews(totalNews)
+            .publishedNews(publishedNews)
+            .draftNews(draftNews)
+            .archivedNews(archivedNews)
+            .featuredNews(featuredNews)
+            .newNewsThisMonth(newNewsThisMonth)
+            .newNewsThisWeek(newNewsThisWeek)
+            .newNewsToday(newNewsToday)
+            .totalViews(totalViews)
+            .avgViewsPerNews(Math.round(avgViewsPerNews * 100.0) / 100.0)
+            .totalComments(totalComments)
+            .newsByCategory(newsByCategory)
+            .topViewedNews(topViewedNews)
+            .viewsTrend(viewsTrend)
+            .newsGrowthPercentage(newsGrowthPercentage)
+            .viewsGrowthPercentage(viewsGrowthPercentage)
+            .build();
     }
 }
