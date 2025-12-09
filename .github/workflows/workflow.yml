@@ -31,7 +31,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEYC }}
           script: |
             sudo systemctl stop bookstore || true
-            sudo rm -f /opt/bookstore/*.jar
+            sudo rm -f /opt/bookstore/target/*.jar
 
       - name: Copy new JAR to EC2-1
         uses: appleboy/scp-action@v0.1.4
@@ -40,7 +40,7 @@ jobs:
           username: ${{ secrets.EC2_USERC }}
           key: ${{ secrets.EC2_SSH_KEYC }}
           source: "target/*.jar"
-          target: "/opt/bookstore"
+          target: "/opt/bookstore/"
 
       - name: Restart bookstore on EC2-1
         uses: appleboy/ssh-action@v1.0.3
