@@ -15,11 +15,10 @@ import java.util.UUID;
 public interface UserService {
     // Existing methods
     boolean existsByEmail(String email);
-
     void resetPassword(String email, String newPassword);
 
     // ===== CRUD OPERATIONS =====
-
+    
     /**
      * Lấy danh sách tất cả users với phân trang và filter
      */
@@ -87,14 +86,7 @@ public interface UserService {
     // ===== EXPORT =====
 
     /**
-     * /**
      * Xuất dữ liệu users ra file Excel
      */
     byte[] exportUsersToExcel();
-
-    /**
-     * Cập nhật profile user (cho user tự cập nhật)
-     */
-    UserResponse updateProfile(String username,
-            com.notfound.bookstore.model.dto.request.userrequest.UpdateProfileRequest request);
 }

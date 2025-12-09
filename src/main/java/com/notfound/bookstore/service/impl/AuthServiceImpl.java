@@ -71,17 +71,15 @@ public class AuthServiceImpl implements AuthService {
     @NonFinal
     @Value("${jwt.refreshable-duration}")
     protected long REFRESHABLE_DURATION;
-
+    
     @PostConstruct
     protected void init() {
         GOOGLE_CLIENT_ID = environment.getProperty("spring.security.oauth2.client.registration.google.client-id");
-        GOOGLE_CLIENT_SECRET = environment
-                .getProperty("spring.security.oauth2.client.registration.google.client-secret");
+        GOOGLE_CLIENT_SECRET = environment.getProperty("spring.security.oauth2.client.registration.google.client-secret");
         GOOGLE_REDIRECT_URI = environment.getProperty("spring.security.oauth2.client.registration.google.redirect-uri");
-
+        
         if (GOOGLE_CLIENT_ID == null || GOOGLE_CLIENT_SECRET == null || GOOGLE_REDIRECT_URI == null) {
-            throw new IllegalStateException(
-                    "Google OAuth2 configuration is missing. Please check application-develop.yml");
+            throw new IllegalStateException("Google OAuth2 configuration is missing. Please check application-develop.yml");
         }
     }
 
@@ -132,7 +130,6 @@ public class AuthServiceImpl implements AuthService {
                 .phoneNumber(request.getPhoneNumber())
                 .dateOfBirth(request.getDateOfBirth())
                 .role(Role.CUSTOMER) // Mặc định là CUSTOMER
-                .status("active")
                 .build();
 
         user = userRepository.save(user);
@@ -256,27 +253,27 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse handleGoogleOAuthCallback(String code) {
         try {
             log.info("Handling Google OAuth callback with code");
-
+            
             // Bước 1: Trao đổi authorization code lấy access token
             String accessToken = exchangeCodeForToken(code);
-
+            
             // Bước 2: Lấy thông tin user từ Google
             Map<String, Object> googleUserInfo = getUserInfoFromGoogle(accessToken);
-
+            
             // Bước 3: Tạo hoặc tìm user trong database
             User user = createOrUpdateUserFromGoogle(googleUserInfo);
-
+            
             // Bước 4: Cập nhật lastLogin
             user.setLastLogin(LocalDateTime.now());
             user = userRepository.save(user);
-
+            
             // Bước 5: Tạo JWT token và trả về
             String token = generateToken(user);
             String refreshToken = generateRefreshToken(user);
             UserResponse userResponse = userMapper.toUserResponse(user);
-
+            
             log.info("Google OAuth login successful for user: {}", user.getUsername());
-
+            
             return AuthResponse.builder()
                     .token(token)
                     .refreshToken(refreshToken)
@@ -310,27 +307,27 @@ public class AuthServiceImpl implements AuthService {
 
     private String exchangeCodeForToken(String code) {
         String tokenUrl = "https://oauth2.googleapis.com/token";
-
+        
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
+        
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("code", code);
         params.add("client_id", GOOGLE_CLIENT_ID);
         params.add("client_secret", GOOGLE_CLIENT_SECRET);
         params.add("redirect_uri", GOOGLE_REDIRECT_URI);
         params.add("grant_type", "authorization_code");
-
+        
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-
+        
         try {
             log.info("Exchanging Google authorization code for access token");
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     tokenUrl,
                     HttpMethod.POST,
                     request,
-                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
-                    });
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
             Map<String, Object> responseBody = response.getBody();
             if (responseBody != null && responseBody.containsKey("access_token")) {
                 log.info("Successfully obtained access token from Google");
@@ -348,20 +345,20 @@ public class AuthServiceImpl implements AuthService {
 
     private Map<String, Object> getUserInfoFromGoogle(String accessToken) {
         String userInfoUrl = "https://www.googleapis.com/oauth2/v2/userinfo";
-
+        
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
-
+        
         HttpEntity<String> entity = new HttpEntity<>(headers);
-
+        
         try {
             log.info("Fetching user info from Google");
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     userInfoUrl,
                     HttpMethod.GET,
                     entity,
-                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
-                    });
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
             Map<String, Object> body = response.getBody();
             if (body == null) {
                 log.error("Failed to get user info from Google. Response body is null");
@@ -381,14 +378,14 @@ public class AuthServiceImpl implements AuthService {
         String email = (String) googleUserInfo.get("email");
         String name = (String) googleUserInfo.get("name");
         String picture = (String) googleUserInfo.get("picture");
-
+        
         if (email == null || email.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_TOKEN);
         }
-
+        
         // Tìm user theo email
         User user = userRepository.findByEmail(email).orElse(null);
-
+        
         if (user == null) {
             // Tạo user mới nếu chưa tồn tại
             // Tạo username từ email hoặc Google ID
@@ -400,10 +397,10 @@ public class AuthServiceImpl implements AuthService {
                 username = originalUsername + "_" + suffix;
                 suffix++;
             }
-
+            
             // Tạo password random (vì OAuth user không có password)
             String randomPassword = UUID.randomUUID().toString();
-
+            
             user = User.builder()
                     .username(username)
                     .password(passwordEncoder.encode(randomPassword))
@@ -411,9 +408,8 @@ public class AuthServiceImpl implements AuthService {
                     .fullName(name != null ? name : "")
                     .avatar_url(picture)
                     .role(Role.CUSTOMER)
-                    .status("active")
                     .build();
-
+            
             user = userRepository.save(user);
         } else {
             // Cập nhật thông tin nếu user đã tồn tại
@@ -426,9 +422,10 @@ public class AuthServiceImpl implements AuthService {
             // Note: lastLogin sẽ được cập nhật trong handleGoogleOAuthCallback sau khi save
             user = userRepository.save(user);
         }
-
+        
         return user;
     }
+
 
     @Override
     public AuthResponse refreshToken(String refreshToken) {
