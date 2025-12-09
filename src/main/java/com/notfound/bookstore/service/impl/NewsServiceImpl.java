@@ -258,7 +258,8 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public Page<NewsResponse> searchNews(String keyword, String category, News.Status status, Pageable pageable) {
-        log.info("Advanced search - keyword: {}, category: {}, status: {}", keyword, category, status);
+        log.info("Advanced search - keyword: {}, category: {}, status: {}, sort: {}", 
+                 keyword, category, status, pageable.getSort());
         
         Page<News> newsPage;
         
@@ -281,12 +282,13 @@ public class NewsServiceImpl implements NewsService {
             }
         } 
         // Không có keyword, chỉ filter theo category/status
+        // SỬ DỤNG CÁC METHOD MỚI KHÔNG HARDCODE ORDER - để Pageable quyết định sorting
         else if (category != null && !category.isEmpty() && status != null) {
-            newsPage = newsRepository.findByCategoryAndStatusOrderByCreatedAtDesc(category, status, pageable);
+            newsPage = newsRepository.findByCategoryAndStatus(category, status, pageable);
         } else if (category != null && !category.isEmpty()) {
-            newsPage = newsRepository.findByCategoryOrderByCreatedAtDesc(category, pageable);
+            newsPage = newsRepository.findByCategory(category, pageable);
         } else if (status != null) {
-            newsPage = newsRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+            newsPage = newsRepository.findByStatus(status, pageable);
         } else {
             newsPage = newsRepository.findAll(pageable);
         }

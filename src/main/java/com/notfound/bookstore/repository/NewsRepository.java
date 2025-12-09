@@ -191,4 +191,25 @@ public interface NewsRepository extends JpaRepository<News, UUID> {
      * Dùng để lấy tin nổi bật đã xuất bản
      */
     Page<News> findByStatusAndFeaturedOrderByCreatedAtDesc(News.Status status, Boolean featured, Pageable pageable);
+    
+    // ============================================
+    // Methods with dynamic sorting from Pageable
+    // (Không hardcode order - để Pageable quyết định sorting)
+    // ============================================
+    
+    /**
+     * Tìm news theo status (dynamic sorting từ Pageable)
+     * Dùng cho advanced-search với sort tùy chọn
+     */
+    Page<News> findByStatus(News.Status status, Pageable pageable);
+    
+    /**
+     * Tìm news theo category (dynamic sorting từ Pageable)
+     */
+    Page<News> findByCategory(String category, Pageable pageable);
+    
+    /**
+     * Tìm news theo category và status (dynamic sorting từ Pageable)
+     */
+    Page<News> findByCategoryAndStatus(String category, News.Status status, Pageable pageable);
 }
