@@ -25,15 +25,27 @@ public class NewsResponse {
 
     UUID newsID;
     String title;
+    String summary; // Tóm tắt ngắn
     String content; // HTML content
     NewsMetadata metadata; // Parsed metadata
     String status;
+    
+    // Category và Tags
+    String category;
+    List<String> tags;
+    
+    // Thống kê
+    Long views;
+    Boolean featured;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     LocalDateTime createdAt;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     LocalDateTime updatedAt;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    LocalDateTime publishedAt;
 
     // Thông tin tác giả
     String authorName;
