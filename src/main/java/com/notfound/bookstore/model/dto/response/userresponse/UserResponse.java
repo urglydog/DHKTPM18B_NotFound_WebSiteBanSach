@@ -19,6 +19,7 @@ public class UserResponse {
     String fullName;
     String phoneNumber;
     String role;
+    String gender;
     String status;
     LocalDate dateOfBirth;
     Integer points;
@@ -26,4 +27,5 @@ public class UserResponse {
     Boolean isEmailVerified;
     String authProvider;
     LocalDateTime lastLogin;
+    String avatar;
 }
