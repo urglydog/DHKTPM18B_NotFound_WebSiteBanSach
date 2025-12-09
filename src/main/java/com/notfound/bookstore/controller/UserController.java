@@ -23,6 +23,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -200,19 +202,37 @@ public class UserController {
 
     /**
      * Lấy thống kê tổng quan về users
-     * GET /api/admin/users/statistics
+     * GET /api/admin/users/statistics?startDate=2024-01-01&endDate=2024-01-31
      */
     @GetMapping("/statistics")
-    public ResponseEntity<ApiResponse<UserStatsResponse>> getStatistics() {
+    public ResponseEntity<ApiResponse<UserStatsResponse>> getStatistics(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
         log.info("GET /api/admin/users/statistics - Getting user statistics");
 
-        UserStatsResponse stats = userService.getUserStatistics();
+        UserStatsResponse stats;
+        try {
+            // Nếu có date range, filter theo date range
+            if (startDate != null && endDate != null) {
+                LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
+                LocalDateTime end = LocalDate.parse(endDate).atTime(23, 59, 59);
+                stats = userService.getUserStatistics(start, end);
+            } else {
+                stats = userService.getUserStatistics();
+            }
 
-        return ResponseEntity.ok(ApiResponse.<UserStatsResponse>builder()
-                .code(200)
-                .message("User statistics retrieved successfully")
-                .result(stats)
-                .build());
+            return ResponseEntity.ok(ApiResponse.<UserStatsResponse>builder()
+                    .code(200)
+                    .message("User statistics retrieved successfully")
+                    .result(stats)
+                    .build());
+        } catch (Exception e) {
+            log.error("Error getting user statistics", e);
+            return ResponseEntity.badRequest().body(ApiResponse.<UserStatsResponse>builder()
+                    .code(4004)
+                    .message("Lỗi định dạng ngày tháng: " + e.getMessage())
+                    .build());
+        }
     }
 
     /**
