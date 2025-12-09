@@ -37,6 +37,13 @@ public class SecurityConfig {
                         "/api/public/**",
                         "/favicon.ico",
 
+                        // Swagger UI
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/v3/api-docs/**",
+                        "/v3/api-docs.yaml",
+                        "/v3/api-docs",
+
                         // Auth
                         "/api/auth/**",
                         "/api/auth/register",
@@ -127,11 +134,14 @@ public class SecurityConfig {
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
 
-                // Cho phép các origin cụ thể (localhost:3000 cho development)
+                // Cho phép các origin cụ thể (localhost:3000 cho development, Swagger UI)
                 configuration.setAllowedOriginPatterns(Arrays.asList(
                                 "http://localhost:3000",
                                 "http://localhost:3001",
-                                "http://127.0.0.1:3000"));
+                                "http://127.0.0.1:3000",
+                                "http://localhost:8080",
+                                "https://editor.swagger.io",
+                                "https://*.swaggerhub.com"));
 
                 // Cho phép các HTTP methods
                 configuration.setAllowedMethods(Arrays.asList(

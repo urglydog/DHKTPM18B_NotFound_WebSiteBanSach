@@ -1,12 +1,14 @@
 package com.notfound.bookstore.exception;
 
 import com.notfound.bookstore.model.dto.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+@Hidden
 @ControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
