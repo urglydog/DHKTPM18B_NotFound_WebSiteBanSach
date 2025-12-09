@@ -131,6 +131,13 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     @Query("UPDATE Book b SET b.stockQuantity = b.stockQuantity + :quantity WHERE b.id = :bookId")
     int increaseStockQuantity(@Param("bookId") UUID bookId, @Param("quantity") Integer quantity);
 
+    /**
+     * Update quantity when order is cancelled (alias for increaseStockQuantity)
+     */
+    @Modifying
+    @Query("UPDATE Book b SET b.stockQuantity = b.stockQuantity + :quantity WHERE b.id = :bookId")
+    int updateQuantityOnCancelOrder(@Param("bookId") UUID bookId, @Param("quantity") Integer quantity);
+
     // Sắp xếp theo đánh giá trung bình giảm dần (cao → thấp)
     @Query("SELECT b FROM Book b LEFT JOIN b.reviews r GROUP BY b.id ORDER BY AVG(r.rating) DESC")
     Page<Book> findAllOrderByAverageRatingDesc(Pageable pageable);

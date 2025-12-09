@@ -15,6 +15,8 @@ import com.notfound.bookstore.model.enums.PaymentStatus;
 import com.notfound.bookstore.model.mapper.PaymentMapper;
 import com.notfound.bookstore.repository.OrderRepository;
 import com.notfound.bookstore.repository.PaymentRepository;
+import com.notfound.bookstore.service.OrderTimeoutService;
+import com.notfound.bookstore.service.ShipmentService;
 import com.notfound.bookstore.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +38,10 @@ public class VNPayServiceImpl {
     private final VNPayUtil vnPayUtil;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
-    private final ShipmentServiceImpl shipmentService;
+    private final ShipmentService shipmentService;
+    private final OrderTimeoutService orderTimeoutService;
+
+    private static final int PAYMENT_TIMEOUT_MINUTES = 15; // Timeout sau 15 phút
     private final PaymentMapper paymentMapper;
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final SecureRandom random = new SecureRandom();
@@ -104,6 +109,10 @@ public class VNPayServiceImpl {
 
             payment = paymentRepository.save(payment);
 
+            // Schedule order timeout after 15 minutes
+            orderTimeoutService.scheduleOrderTimeout(order.getOrderID(), PAYMENT_TIMEOUT_MINUTES);
+            log.info("Scheduled timeout for order {} in {} minutes", order.getOrderID(), PAYMENT_TIMEOUT_MINUTES);
+
             // 5. Generate VNPay URL
             String paymentUrl = vnPayUtil.generatePaymentUrl(
                     transactionId,
@@ -147,6 +156,10 @@ public class VNPayServiceImpl {
             payment.setDate(LocalDateTime.now());
             payment.setPaymentMethod(String.valueOf(PaymentMethod.VNPay));
 
+            // Cancel the timeout since payment is successful
+            orderTimeoutService.cancelOrderTimeout(payment.getOrder().getOrderID());
+            log.info("Cancelled timeout for order {} - payment successful", payment.getOrder().getOrderID());
+
             //Thành công sẽ tạo shipment ở bước sau
             shipmentService.createShipmentOrder(payment.getOrder());
 
@@ -179,5 +192,27 @@ public class VNPayServiceImpl {
         log.debug("Generated random transaction ID: {}", transactionId);
 
         return transactionId;
+    }
+
+    /**
+     * Lấy redirectUrl từ Payment entity theo transactionId
+     * @param transactionId Transaction ID của payment
+     * @return redirectUrl hoặc null nếu không tìm thấy
+     */
+    public String getRedirectUrlByTransactionId(String transactionId) {
+        try {
+            Payment payment = paymentRepository.findPaymentByTransactionId(transactionId)
+                    .orElse(null);
+
+            if (payment != null) {
+                return payment.getRedirectUrl();
+            }
+
+            log.warn("Payment not found for transactionId: {}", transactionId);
+            return null;
+        } catch (Exception e) {
+            log.error("Error getting redirectUrl for transactionId {}: {}", transactionId, e.getMessage());
+            return null;
+        }
     }
 }

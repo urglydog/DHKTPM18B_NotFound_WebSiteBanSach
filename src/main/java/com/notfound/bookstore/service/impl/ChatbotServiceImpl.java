@@ -44,6 +44,7 @@ public class ChatbotServiceImpl implements ChatbotService {
     // Store chat history per session
     private final Map<String, List<ChatMessage>> chatHistoryMap = new ConcurrentHashMap<>();
     private static final int MAX_HISTORY_SIZE = 20; // Stores up to 20 messages (user + AI)
+    private static final int CLEAR_HISTORY_THRESHOLD = 30; // Clear history when reaching this threshold
 
     private record ChatMessage(String role, String content) {
     }
@@ -64,9 +65,22 @@ public class ChatbotServiceImpl implements ChatbotService {
             // Add user message to history
             chatHistory.add(new ChatMessage("user", userMessage));
 
-            // Truncate history if needed
-            while (chatHistory.size() > MAX_HISTORY_SIZE) {
-                chatHistory.remove(0);
+            // Clear history if it exceeds threshold (keep only recent messages)
+            if (chatHistory.size() > CLEAR_HISTORY_THRESHOLD) {
+                // Keep only the last MAX_HISTORY_SIZE messages
+                int keepFromIndex = chatHistory.size() - MAX_HISTORY_SIZE;
+                List<ChatMessage> recentHistory = new ArrayList<>();
+                for (int i = keepFromIndex; i < chatHistory.size(); i++) {
+                    recentHistory.add(chatHistory.get(i));
+                }
+                chatHistory.clear();
+                chatHistory.addAll(recentHistory);
+                log.debug("Cleared chat history for session {}: kept {} recent messages", sessionId, recentHistory.size());
+            } else {
+                // Truncate history if needed (normal case)
+                while (chatHistory.size() > MAX_HISTORY_SIZE) {
+                    chatHistory.remove(0);
+                }
             }
 
             // Get current user (if authenticated)
@@ -109,11 +123,23 @@ public class ChatbotServiceImpl implements ChatbotService {
             }
             aiMessages.add(new UserMessage(enhancedUserMessage));
 
+            // Get current date and time for context
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy", java.util.Locale.forLanguageTag("vi"));
+            java.time.format.DateTimeFormatter timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+            String currentDate = now.format(dateFormatter);
+            String currentTime = now.format(timeFormatter);
+            String currentDateTime = String.format("%s, lúc %s", currentDate, currentTime);
+
             // Build system prompt with database context
             SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(
-                    """
+                    String.format("""
                             Bạn là một trợ lý AI thân thiện và hữu ích cho một ứng dụng nhà sách trực tuyến.
                             Tên của bạn là BookBot.
+
+                            THÔNG TIN THỜI GIAN HIỆN TẠI:
+                            - Ngày và giờ hiện tại: %s
+                            - Khi người dùng hỏi về ngày tháng, hãy sử dụng thông tin này để trả lời chính xác.
 
                             Bạn có thể giúp khách hàng:
                             - Tìm kiếm sách theo tên, tác giả, thể loại (dựa trên dữ liệu thực từ database)
@@ -121,6 +147,7 @@ public class ChatbotServiceImpl implements ChatbotService {
                             - Trả lời câu hỏi về đơn hàng của họ (nếu đã đăng nhập)
                             - Cung cấp thông tin về khuyến mãi, thể loại, tác giả (từ database)
                             - Hỗ trợ tư vấn về sách và đọc sách
+                            - Trả lời câu hỏi về ngày tháng, thời gian hiện tại
 
                             QUAN TRỌNG:
                             - Luôn sử dụng dữ liệu thực từ hệ thống được cung cấp trong [Dữ liệu từ hệ thống]
@@ -128,7 +155,9 @@ public class ChatbotServiceImpl implements ChatbotService {
                             - Nếu không có dữ liệu, hãy thành thật nói rằng bạn không tìm thấy thông tin
                             - Luôn trả lời bằng tiếng Việt một cách thân thiện, chuyên nghiệp và hữu ích
                             - Khi đề cập đến sách cụ thể, hãy cung cấp thông tin chính xác từ database (tên, giá, tác giả, đánh giá)
-                            """);
+                            - KHÔNG sử dụng markdown formatting (không dùng dấu **, ***, __, hoặc các ký hiệu markdown khác)
+                            - Trả lời bằng văn bản thuần túy, dễ đọc, không có định dạng đặc biệt
+                            """, currentDateTime));
 
             // Get AI response
             ChatClient chatClient = ChatClient.builder(chatModel)
@@ -144,9 +173,22 @@ public class ChatbotServiceImpl implements ChatbotService {
             // Add AI response to history
             chatHistory.add(new ChatMessage("assistant", aiResponse));
 
-            // Truncate history again
-            while (chatHistory.size() > MAX_HISTORY_SIZE) {
-                chatHistory.remove(0);
+            // Clear history if it exceeds threshold (keep only recent messages)
+            if (chatHistory.size() > CLEAR_HISTORY_THRESHOLD) {
+                // Keep only the last MAX_HISTORY_SIZE messages
+                int keepFromIndex = chatHistory.size() - MAX_HISTORY_SIZE;
+                List<ChatMessage> recentHistory = new ArrayList<>();
+                for (int i = keepFromIndex; i < chatHistory.size(); i++) {
+                    recentHistory.add(chatHistory.get(i));
+                }
+                chatHistory.clear();
+                chatHistory.addAll(recentHistory);
+                log.debug("Cleared chat history for session {}: kept {} recent messages", sessionId, recentHistory.size());
+            } else {
+                // Truncate history if needed (normal case)
+                while (chatHistory.size() > MAX_HISTORY_SIZE) {
+                    chatHistory.remove(0);
+                }
             }
 
             // Update history map
