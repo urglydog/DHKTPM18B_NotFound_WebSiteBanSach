@@ -155,6 +155,360 @@ public class OrderController {
     }
 
     /**
+     * ADMIN: Xác nhận đơn hàng COD (chuyển từ PENDING sang CONFIRMED)
+     * POST /api/orders/admin/{orderId}/confirm
+     */
+    @PostMapping("/admin/{orderId}/confirm")
+    public ApiResponse<OrderResponse> confirmCODOrder(@PathVariable UUID orderId) {
+        try {
+            OrderResponse order = orderService.getOrderById(orderId);
+
+            // Kiểm tra đơn hàng có phải COD không
+            if (!"COD".equalsIgnoreCase(order.getPaymentMethod())) {
+                return ApiResponse.<OrderResponse>builder()
+                        .code(4003)
+                        .message("Chỉ có thể xác nhận đơn hàng COD")
+                        .build();
+            }
+
+            // Kiểm tra trạng thái hiện tại
+            if (!"PENDING".equals(order.getStatus())) {
+                return ApiResponse.<OrderResponse>builder()
+                        .code(4003)
+                        .message("Chỉ có thể xác nhận đơn hàng đang ở trạng thái PENDING")
+                        .build();
+            }
+
+            // Chuyển sang CONFIRMED
+            OrderResponse confirmedOrder = orderService.updateOrderStatus(orderId, OrderStatus.CONFIRMED);
+
+            return ApiResponse.<OrderResponse>builder()
+                    .code(1000)
+                    .message("Xác nhận đơn hàng COD thành công")
+                    .result(confirmedOrder)
+                    .build();
+
+        } catch (RuntimeException e) {
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * ADMIN: Bắt đầu xử lý đơn hàng (chuyển sang PROCESSING)
+     * POST /api/orders/admin/{orderId}/process
+     */
+    @PostMapping("/admin/{orderId}/process")
+    public ApiResponse<OrderResponse> processOrder(@PathVariable UUID orderId) {
+        try {
+            OrderResponse order = orderService.getOrderById(orderId);
+
+            // Kiểm tra trạng thái hiện tại
+            if (!"CONFIRMED".equals(order.getStatus()) && !"PENDING".equals(order.getStatus())) {
+                return ApiResponse.<OrderResponse>builder()
+                        .code(4003)
+                        .message("Chỉ có thể xử lý đơn hàng đang ở trạng thái CONFIRMED hoặc PENDING")
+                        .build();
+            }
+
+            OrderResponse processedOrder = orderService.updateOrderStatus(orderId, OrderStatus.PROCESSING);
+
+            return ApiResponse.<OrderResponse>builder()
+                    .code(1000)
+                    .message("Bắt đầu xử lý đơn hàng thành công")
+                    .result(processedOrder)
+                    .build();
+
+        } catch (RuntimeException e) {
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * ADMIN: Đánh dấu đơn hàng đã giao cho shipper (chuyển sang SHIPPED)
+     * POST /api/orders/admin/{orderId}/ship
+     */
+    @PostMapping("/admin/{orderId}/ship")
+    public ApiResponse<OrderResponse> shipOrder(@PathVariable UUID orderId) {
+        try {
+            OrderResponse order = orderService.getOrderById(orderId);
+
+            // Kiểm tra trạng thái hiện tại
+            if (!"PROCESSING".equals(order.getStatus())) {
+                return ApiResponse.<OrderResponse>builder()
+                        .code(4003)
+                        .message("Chỉ có thể giao hàng khi đơn đang ở trạng thái PROCESSING")
+                        .build();
+            }
+
+            OrderResponse shippedOrder = orderService.updateOrderStatus(orderId, OrderStatus.SHIPPED);
+
+            return ApiResponse.<OrderResponse>builder()
+                    .code(1000)
+                    .message("Đơn hàng đã được giao cho shipper")
+                    .result(shippedOrder)
+                    .build();
+
+        } catch (RuntimeException e) {
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * ADMIN: Đánh dấu đơn hàng đã giao thành công (chuyển sang DELIVERED)
+     * POST /api/orders/admin/{orderId}/deliver
+     */
+    @PostMapping("/admin/{orderId}/deliver")
+    public ApiResponse<OrderResponse> deliverOrder(@PathVariable UUID orderId) {
+        try {
+            OrderResponse order = orderService.getOrderById(orderId);
+
+            // Kiểm tra trạng thái hiện tại
+            if (!"SHIPPED".equals(order.getStatus())) {
+                return ApiResponse.<OrderResponse>builder()
+                        .code(4003)
+                        .message("Chỉ có thể xác nhận giao hàng khi đơn đang ở trạng thái SHIPPED")
+                        .build();
+            }
+
+            OrderResponse deliveredOrder = orderService.updateOrderStatus(orderId, OrderStatus.DELIVERED);
+
+            return ApiResponse.<OrderResponse>builder()
+                    .code(1000)
+                    .message("Đơn hàng đã được giao thành công")
+                    .result(deliveredOrder)
+                    .build();
+
+        } catch (RuntimeException e) {
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * ADMIN: Hoàn thành đơn hàng (chuyển sang COMPLETED)
+     * POST /api/orders/admin/{orderId}/complete
+     */
+    @PostMapping("/admin/{orderId}/complete")
+    public ApiResponse<OrderResponse> completeOrder(@PathVariable UUID orderId) {
+        try {
+            OrderResponse order = orderService.getOrderById(orderId);
+
+            // Kiểm tra trạng thái hiện tại
+            if (!"DELIVERED".equals(order.getStatus())) {
+                return ApiResponse.<OrderResponse>builder()
+                        .code(4003)
+                        .message("Chỉ có thể hoàn thành đơn hàng đã được giao")
+                        .build();
+            }
+
+            OrderResponse completedOrder = orderService.updateOrderStatus(orderId, OrderStatus.COMPLETED);
+
+            return ApiResponse.<OrderResponse>builder()
+                    .code(1000)
+                    .message("Đơn hàng đã hoàn thành")
+                    .result(completedOrder)
+                    .build();
+
+        } catch (RuntimeException e) {
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * ADMIN: Hủy đơn hàng
+     * POST /api/orders/admin/{orderId}/cancel
+     */
+    @PostMapping("/admin/{orderId}/cancel")
+    public ApiResponse<OrderResponse> adminCancelOrder(@PathVariable UUID orderId) {
+        try {
+            OrderResponse order = orderService.getOrderById(orderId);
+
+            // Không thể hủy đơn đã giao hoặc hoàn thành
+            if ("DELIVERED".equals(order.getStatus()) || "COMPLETED".equals(order.getStatus())) {
+                return ApiResponse.<OrderResponse>builder()
+                        .code(4003)
+                        .message("Không thể hủy đơn hàng đã giao hoặc đã hoàn thành")
+                        .build();
+            }
+
+            OrderResponse cancelledOrder = orderService.updateOrderStatus(orderId, OrderStatus.CANCELLED);
+
+            return ApiResponse.<OrderResponse>builder()
+                    .code(1000)
+                    .message("Đã hủy đơn hàng")
+                    .result(cancelledOrder)
+                    .build();
+
+        } catch (RuntimeException e) {
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * ADMIN: Lấy chi tiết đơn hàng (không cần kiểm tra quyền sở hữu)
+     * GET /api/orders/admin/{orderId}/details
+     */
+    @GetMapping("/admin/{orderId}/details")
+    public ApiResponse<OrderResponse> getOrderDetailsAdmin(@PathVariable UUID orderId) {
+        try {
+            OrderResponse order = orderService.getOrderById(orderId);
+
+            return ApiResponse.<OrderResponse>builder()
+                    .code(1000)
+                    .message("Lấy chi tiết đơn hàng thành công")
+                    .result(order)
+                    .build();
+
+        } catch (RuntimeException e) {
+            return ApiResponse.<OrderResponse>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * ADMIN: Lấy đơn hàng COD chưa xác nhận
+     * GET /api/orders/admin/cod/pending
+     */
+    @GetMapping("/admin/cod/pending")
+    public ApiResponse<List<OrderResponse>> getPendingCODOrders() {
+        try {
+            // Lấy tất cả đơn PENDING
+            List<OrderResponse> allPendingOrders = orderService.getOrdersByStatus(OrderStatus.PENDING);
+
+            // Filter chỉ lấy COD
+            List<OrderResponse> codOrders = allPendingOrders.stream()
+                    .filter(order -> "COD".equalsIgnoreCase(order.getPaymentMethod()))
+                    .toList();
+
+            return ApiResponse.<List<OrderResponse>>builder()
+                    .code(1000)
+                    .message("Lấy danh sách đơn COD chưa xác nhận thành công")
+                    .result(codOrders)
+                    .build();
+
+        } catch (Exception e) {
+            return ApiResponse.<List<OrderResponse>>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * ADMIN: Tìm kiếm đơn hàng theo customer name hoặc order ID
+     * GET /api/orders/admin/search?keyword=John
+     */
+    @GetMapping("/admin/search")
+    public ApiResponse<List<OrderResponse>> searchOrders(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<OrderResponse> orders = orderService.getAllOrders(pageable);
+
+            // Filter by keyword (simple implementation - có thể cải thiện bằng query)
+            List<OrderResponse> filteredOrders = orders.getContent().stream()
+                    .filter(order ->
+                        order.getId().toString().contains(keyword) ||
+                        (order.getRecipientName() != null &&
+                         order.getRecipientName().toLowerCase().contains(keyword.toLowerCase())) ||
+                        (order.getCustomerName() != null &&
+                         order.getCustomerName().toLowerCase().contains(keyword.toLowerCase()))
+                    )
+                    .toList();
+
+            return ApiResponse.<List<OrderResponse>>builder()
+                    .code(1000)
+                    .message("Tìm kiếm đơn hàng thành công")
+                    .result(filteredOrders)
+                    .build();
+
+        } catch (Exception e) {
+            return ApiResponse.<List<OrderResponse>>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * ADMIN: Lấy thống kê tổng quan
+     * GET /api/orders/admin/statistics
+     */
+    @GetMapping("/admin/statistics")
+    public ApiResponse<java.util.Map<String, Object>> getOrderStatistics(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        try {
+            LocalDateTime start = null;
+            LocalDateTime end = null;
+
+            if (startDate != null && endDate != null) {
+                start = LocalDate.parse(startDate).atStartOfDay();
+                end = LocalDate.parse(endDate).atTime(23, 59, 59);
+            }
+
+            // Lấy số lượng đơn theo từng trạng thái
+            long pendingCount = orderService.getOrdersByStatus(OrderStatus.PENDING).size();
+            long confirmedCount = orderService.getOrdersByStatus(OrderStatus.CONFIRMED).size();
+            long processingCount = orderService.getOrdersByStatus(OrderStatus.PROCESSING).size();
+            long shippedCount = orderService.getOrdersByStatus(OrderStatus.SHIPPED).size();
+            long deliveredCount = orderService.getOrdersByStatus(OrderStatus.DELIVERED).size();
+            long completedCount = orderService.getOrdersByStatus(OrderStatus.COMPLETED).size();
+            long cancelledCount = orderService.getOrdersByStatus(OrderStatus.CANCELLED).size();
+
+            // Tổng doanh thu
+            Double totalRevenue = start != null && end != null
+                    ? orderService.getTotalRevenue(start, end)
+                    : orderService.getTotalRevenue();
+
+            java.util.Map<String, Object> statistics = new java.util.HashMap<>();
+            statistics.put("pending", pendingCount);
+            statistics.put("confirmed", confirmedCount);
+            statistics.put("processing", processingCount);
+            statistics.put("shipped", shippedCount);
+            statistics.put("delivered", deliveredCount);
+            statistics.put("completed", completedCount);
+            statistics.put("cancelled", cancelledCount);
+            statistics.put("totalRevenue", totalRevenue);
+            statistics.put("totalOrders", pendingCount + confirmedCount + processingCount +
+                                         shippedCount + deliveredCount + completedCount + cancelledCount);
+
+            return ApiResponse.<java.util.Map<String, Object>>builder()
+                    .code(1000)
+                    .message("Lấy thống kê thành công")
+                    .result(statistics)
+                    .build();
+
+        } catch (Exception e) {
+            return ApiResponse.<java.util.Map<String, Object>>builder()
+                    .code(4004)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
      * ADMIN: Cập nhật trạng thái đơn hàng
      * PUT /api/orders/admin/{orderId}/status?status=CONFIRMED
      */

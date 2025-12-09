@@ -30,6 +30,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
+    // Tax rate constant: 5%
+    private static final double TAX_RATE = 0.05;
+
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final BookRepository bookRepository;
@@ -107,8 +110,12 @@ public class OrderServiceImpl implements OrderService {
             promotionService.applyPromotionCode(promotion.getPromotionID());
         }
 
-        // 5. Tính thuế và phí ship
-        Double taxAmount = 0.0;
+        // 5. Tính thuế 5% (do shop chịu - không tính thêm cho khách)
+        // Tax được tính để lưu vào DB cho mục đích kế toán/báo cáo
+        Double taxableAmount = subtotal - discountAmount;
+        Double taxAmount = taxableAmount * TAX_RATE;
+        log.info("Tax amount (absorbed by shop): {}₫ ({}%)", taxAmount, TAX_RATE * 100);
+
         Double shippingFee = 30000.0; // Default fallback fee
 
         // 5.1. Tính phí ship động từ GHN nếu có địa chỉ
@@ -146,8 +153,12 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // 6. Tính tổng tiền sau giảm giá
-        Double totalAmount = subtotal - discountAmount + taxAmount + shippingFee;
+        // 6. Tính tổng tiền khách hàng phải trả
+        // Công thức: subtotal - discount + shipping (KHÔNG cộng tax vì shop chịu)
+        Double totalAmount = subtotal - discountAmount + shippingFee;
+
+        log.info("Order calculation - Subtotal: {}₫, Discount: {}₫, Tax (shop pays): {}₫, Shipping: {}₫, Total (customer pays): {}₫",
+                 subtotal, discountAmount, taxAmount, shippingFee, totalAmount);
 
         // 7. Tạo đơn hàng
         Order order = new Order();
