@@ -132,42 +132,29 @@ public class SecurityConfig {
          */
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
-                CorsConfiguration configuration = new CorsConfiguration();
+            CorsConfiguration configuration = new CorsConfiguration();
 
-                // Cho phép các origin cụ thể (localhost:3000 cho development, Swagger UI)
-                configuration.setAllowedOriginPatterns(Arrays.asList(
-                                "http://localhost:3000",
-                                "http://localhost:3001",
-                                "http://127.0.0.1:3000",
-                                "http://localhost:8080",
-                                "https://editor.swagger.io",
-                                "https://*.swaggerhub.com",
-                                "https://nhasachcongdong.id.vn",
-                        "https://www-not-found-web-site-ban-sach-fe.vercel.app"
-                        ));
+            // Cho phép tất cả origin
+            configuration.setAllowedOriginPatterns(Arrays.asList("*"));
 
-                // Cho phép các HTTP methods
-                configuration.setAllowedMethods(Arrays.asList(
-                                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+            // Cho phép tất cả HTTP methods
+            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 
-                // Cho phép tất cả headers
-                configuration.setAllowedHeaders(Arrays.asList("*"));
+            // Cho phép tất cả headers
+            configuration.setAllowedHeaders(Arrays.asList("*"));
 
-                // Cho phép gửi credentials (cookies, authorization headers)
-                configuration.setAllowCredentials(true);
+            // Cho phép gửi credentials (cookies, authorization headers)
+            configuration.setAllowCredentials(true);
 
-                // Cache preflight response trong 1 giờ
-                configuration.setMaxAge(3600L);
+            // Cache preflight response trong 1 giờ
+            configuration.setMaxAge(3600L);
 
-                // Expose các headers để frontend có thể đọc
-                configuration.setExposedHeaders(Arrays.asList(
-                                "Authorization",
-                                "Content-Type",
-                                "X-Total-Count"));
+            // Expose các headers để frontend có thể đọc
+            configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Total-Count"));
 
-                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/**", configuration);
-                return source;
+            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+            source.registerCorsConfiguration("/**", configuration);
+            return source;
         }
 
         @Bean
