@@ -1,6 +1,7 @@
 package com.notfound.bookstore.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.notfound.bookstore.util.PriceCalculationUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -42,6 +43,7 @@ public class CartItem {
     }
 
     public double getSubTotal(){
-        return book.getPrice() * quantity;
+        // Use centralized price calculation utility for consistency
+        return PriceCalculationUtil.calculateSubtotal(book, quantity);
     }
 }

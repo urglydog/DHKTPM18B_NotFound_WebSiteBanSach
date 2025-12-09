@@ -9,8 +9,11 @@ import com.notfound.bookstore.repository.*;
 import com.notfound.bookstore.service.CartService;
 import com.notfound.bookstore.service.OrderService;
 import com.notfound.bookstore.service.PromotionService;
+import com.notfound.bookstore.service.ShipmentService;
+import com.notfound.bookstore.util.PriceCalculationUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,18 +25,21 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
-    private final CartService cartService;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final PromotionRepository promotionRepository;
+
+    private final CartService cartService;
     private final PromotionService promotionService;
     private final AddressRepository addressRepository;
+    private final ShipmentService shipmentService;
 
     @Override
     @Transactional
@@ -101,9 +107,44 @@ public class OrderServiceImpl implements OrderService {
             promotionService.applyPromotionCode(promotion.getPromotionID());
         }
 
-        // 5. Tính thuế và phí ship (có thể tùy chỉnh)
+        // 5. Tính thuế và phí ship
         Double taxAmount = 0.0;
-        Double shippingFee = 30000.0; // Phí ship cố định hoặc tính theo logic
+        Double shippingFee = 30000.0; // Default fallback fee
+
+        // 5.1. Tính phí ship động từ GHN nếu có địa chỉ
+        if (request.getAddressId() != null) {
+            Address address = addressRepository.findById(request.getAddressId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy địa chỉ"));
+
+            // Calculate shipping fee using GHN API
+            try {
+                // Calculate total weight (default 300g per book)
+                int totalBooks = cartItems.stream()
+                        .mapToInt(CartItem::getQuantity)
+                        .sum();
+                int totalWeight = 300 * totalBooks; // gram
+
+                // Build shipping fee request
+                com.notfound.bookstore.model.dto.request.shipmentrequest.ShippingFeeRequest feeRequest =
+                    com.notfound.bookstore.model.dto.request.shipmentrequest.ShippingFeeRequest.builder()
+                        .toDistrictId(address.getDistrictId())
+                        .toWardCode(address.getWardCode())
+                        .weight(totalWeight)
+                        .insuranceValue(subtotal.intValue())
+                        .build();
+
+                com.notfound.bookstore.model.dto.response.shipmentresponse.ShippingCalculationResponse shippingCalc =
+                    shipmentService.calculateShipping(feeRequest);
+
+                shippingFee = shippingCalc.getTotalFee().doubleValue();
+                log.info("Calculated shipping fee from GHN: {}₫ for {} books, weight {}g, to district {}, ward {}",
+                         shippingFee, totalBooks, totalWeight, address.getDistrictId(), address.getWardCode());
+
+            } catch (Exception e) {
+                log.warn("Failed to calculate shipping fee from GHN, using default {}: {}", shippingFee, e.getMessage());
+                // Keep default shipping fee on error
+            }
+        }
 
         // 6. Tính tổng tiền sau giảm giá
         Double totalAmount = subtotal - discountAmount + taxAmount + shippingFee;
@@ -120,7 +161,7 @@ public class OrderServiceImpl implements OrderService {
         order.setShippingFee(shippingFee);
         order.setOrderDate(LocalDateTime.now());
 
-        // 7.1. Set shipping details nếu có addressId
+        // 7.1. Set shipping details từ address đã fetch ở trên
         if (request.getAddressId() != null) {
             Address address = addressRepository.findById(request.getAddressId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy địa chỉ"));
@@ -135,11 +176,14 @@ public class OrderServiceImpl implements OrderService {
                     address.getDistrict(),
                     address.getProvince());
             shippingDetails.setFullAddress(fullAddress);
+
             shippingDetails.setWard(address.getWard());
             shippingDetails.setDistrict(address.getDistrict());
             shippingDetails.setProvince(address.getProvince());
 
             order.setShippingDetails(shippingDetails);
+        }else{
+            throw new RuntimeException("Địa chỉ giao hàng không được để trống");
         }
 
         order = orderRepository.save(order);
@@ -150,21 +194,31 @@ public class OrderServiceImpl implements OrderService {
                 .map(cartItem -> {
                     Book book = cartItem.getBook();
 
-                    // Kiểm tra tồn kho
-                    if (book.getStockQuantity() < cartItem.getQuantity()) {
-                        throw new RuntimeException("Sách '" + book.getTitle() + "' không đủ số lượng trong kho");
-                    }
+                    // ⚠️ ATOMIC UPDATE - Prevents Race Condition
+                    // Trừ tồn kho ngay lập tức bằng atomic query
+                    // Nếu không đủ hàng, query sẽ trả về 0 (không update được)
+                    int updatedRows = bookRepository.decreaseStockQuantity(
+                            book.getId(),
+                            cartItem.getQuantity()
+                    );
 
-                    // Trừ tồn kho
-                    book.setStockQuantity(book.getStockQuantity() - cartItem.getQuantity());
-                    bookRepository.save(book);
+                    // Nếu không update được (updatedRows = 0) => Hết hàng
+                    if (updatedRows == 0) {
+                        // Ném exception để @Transactional rollback toàn bộ
+                        throw new RuntimeException(
+                                "Sách '" + book.getTitle() + "' không đủ số lượng trong kho. " +
+                                "Yêu cầu: " + cartItem.getQuantity() + " quyển."
+                        );
+                    }
 
                     // Tạo order item
                     OrderItem orderItem = new OrderItem();
                     orderItem.setOrder(finalOrder);
                     orderItem.setBook(book);
                     orderItem.setQuantity(cartItem.getQuantity());
-                    orderItem.setUnitPrice(book.getPrice());
+
+                    // Use centralized price calculation utility for consistency
+                    orderItem.setUnitPrice(PriceCalculationUtil.getEffectivePrice(book));
                     orderItem.setSubtotal(cartItem.getSubTotal());
 
                     return orderItem;
@@ -184,7 +238,20 @@ public class OrderServiceImpl implements OrderService {
             cartService.clearCart(userId);
         }
 
-        // 10. Tạo response
+        // 10. Create shipment order for COD payment method
+        if ("COD".equalsIgnoreCase(request.getPaymentMethod())) {
+            try {
+                order.setStatus(OrderStatus.PROCESSING);
+                orderRepository.save(order);
+                shipmentService.createShipmentOrder(order);
+                log.info("Shipment order created for COD order: {}", order.getOrderID());
+            } catch (Exception e) {
+                log.error("Failed to create shipment for COD order {}: {}", order.getOrderID(), e.getMessage(), e);
+                // Don't fail the order if shipment creation fails
+            }
+        }
+
+        // 11. Tạo response
         return buildOrderResponse(order, orderItems, promotion, discountAmount, subtotal);
     }
 
@@ -273,13 +340,18 @@ public class OrderServiceImpl implements OrderService {
         // Hoàn lại tồn kho
         List<OrderItem> orderItems = orderItemRepository.findByOrderOrderID(orderId);
         orderItems.forEach(item -> {
-            Book book = item.getBook();
-            book.setStockQuantity(book.getStockQuantity() + item.getQuantity());
-            bookRepository.save(book);
+            // Sử dụng atomic update để tăng tồn kho
+            bookRepository.increaseStockQuantity(item.getBook().getId(), item.getQuantity());
         });
 
         order.setStatus(OrderStatus.CANCELLED);
         order = orderRepository.save(order);
+
+        // Hủy đơn vận chuyển nếu đã tạo
+        Shipment shipment = order.getShipment();
+        if (shipment != null){
+            shipmentService.cancelShipmentOrder(shipment.getGhnOrderCode());
+        }
 
         Double subtotal = orderItems.stream().mapToDouble(OrderItem::getSubtotal).sum();
         return buildOrderResponse(order, orderItems, order.getPromotion(),

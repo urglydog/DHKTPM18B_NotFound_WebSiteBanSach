@@ -15,6 +15,7 @@ import com.notfound.bookstore.model.enums.PaymentStatus;
 import com.notfound.bookstore.model.mapper.PaymentMapper;
 import com.notfound.bookstore.repository.OrderRepository;
 import com.notfound.bookstore.repository.PaymentRepository;
+import com.notfound.bookstore.service.MoMoService;
 import com.notfound.bookstore.util.MoMoUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,19 +32,53 @@ import java.util.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MoMoServiceImpl {
+public class MoMoServiceImpl implements MoMoService {
 
     private final MoMoConfig moMoConfig;
     private final MoMoUtil moMoUtil;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
+    private final ShipmentServiceImpl shipmentService;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final SecureRandom random = new SecureRandom();
 
+    /**
+     * Implementation of PaymentService.createPayment()
+     * Delegates to createMoMoPayment()
+     */
+    @Override
+    public CreatePaymentResponse createPayment(PaymentRequest request) {
+        return createMoMoPayment(request);
+    }
+
+    /**
+     * Implementation of PaymentService.handleCallback()
+     * Delegates to handleMoMoCallback() with type casting
+     */
+    @Override
+    public PaymentResponse handleCallback(Object callbackData) {
+        if (callbackData instanceof MoMoCallbackRequest) {
+            return handleMoMoCallback((MoMoCallbackRequest) callbackData);
+        }
+        throw new AppException(ErrorCode.INVALID_PAYMENT_CALLBACK);
+    }
+
+    /**
+     * Implementation of PaymentService.handleReturn()
+     * Returns a simple success response for MoMo return URL
+     */
+    @Override
+    public PaymentResponse handleReturn() {
+        return PaymentResponse.builder()
+                .status(PaymentStatus.COMPLETED)
+                .build();
+    }
+
+    @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public CreatePaymentResponse createMoMoPayment(PaymentRequest request) {
         try {
@@ -72,8 +107,8 @@ public class MoMoServiceImpl {
                         payment = paymentRepository.save(payment);
                     }
 
-                    // Generate MoMo payment URL with existing transaction
-                    String paymentUrl = createMoMoPaymentUrl(transactionId, payment.getAmount());
+                    // Generate MoMo payment URL with existing transaction and redirectUrl from Frontend
+                    String paymentUrl = createMoMoPaymentUrl(transactionId, payment.getAmount(), request.getRedirectUrl());
                     return paymentMapper.toSuccessResponse(payment, paymentUrl);
                 }
             }
@@ -88,12 +123,13 @@ public class MoMoServiceImpl {
                     .transactionId(transactionId)
                     .paymentMethod(String.valueOf(PaymentMethod.MoMo))
                     .status(PaymentStatus.PENDING)
+                    .redirectUrl(request.getRedirectUrl()) // ⭐ Lưu redirectUrl từ Frontend
                     .build();
 
             payment = paymentRepository.save(payment);
 
-            // 5. Generate MoMo payment URL
-            String paymentUrl = createMoMoPaymentUrl(transactionId, payment.getAmount());
+            // 5. Generate MoMo payment URL with redirectUrl from Frontend
+            String paymentUrl = createMoMoPaymentUrl(transactionId, payment.getAmount(), request.getRedirectUrl());
             return paymentMapper.toSuccessResponse(payment, paymentUrl);
 
         } catch (AppException e) {
@@ -104,16 +140,26 @@ public class MoMoServiceImpl {
         }
     }
 
-    private String createMoMoPaymentUrl(String transactionId, Long amount) {
+    private String createMoMoPaymentUrl(String transactionId, Long amount, String redirectUrl) {
         try {
             String requestId = transactionId;
             String orderId = transactionId;
             String orderInfo = "Thanh toán đơn hàng " + orderId;
 
+            // Encode redirectUrl vào extraData (Base64) để Frontend có thể redirect về đúng URL
+            String extraData = "";
+            if (redirectUrl != null && !redirectUrl.isEmpty()) {
+                extraData = Base64.getEncoder().encodeToString(redirectUrl.getBytes());
+                log.debug("Encoded redirectUrl into extraData: {} -> {}", redirectUrl, extraData);
+            } else {
+                // Fallback to config if no redirectUrl provided
+                extraData = moMoConfig.getExtraData();
+            }
+
             // Build raw signature data (theo thứ tự của MoMo)
             String rawSignature = "accessKey=" + moMoConfig.getAccessKey() +
                     "&amount=" + amount +
-                    "&extraData=" + moMoConfig.getExtraData() +
+                    "&extraData=" + extraData +
                     "&ipnUrl=" + moMoConfig.getNotifyUrl() +
                     "&orderId=" + orderId +
                     "&orderInfo=" + orderInfo +
@@ -136,7 +182,7 @@ public class MoMoServiceImpl {
             requestBody.put("orderInfo", orderInfo);
             requestBody.put("redirectUrl", moMoConfig.getReturnUrl());
             requestBody.put("ipnUrl", moMoConfig.getNotifyUrl());
-            requestBody.put("extraData", moMoConfig.getExtraData());
+            requestBody.put("extraData", extraData); // ⭐ Chứa redirectUrl đã encode
             requestBody.put("requestType", moMoConfig.getRequestType());
             requestBody.put("signature", signature);
             requestBody.put("lang", "vi");
@@ -177,6 +223,7 @@ public class MoMoServiceImpl {
         }
     }
 
+    @Override
     @Transactional
     public PaymentResponse handleMoMoCallback(MoMoCallbackRequest callback) {
         try {
@@ -221,6 +268,22 @@ public class MoMoServiceImpl {
                 payment.setStatus(PaymentStatus.COMPLETED);
                 payment.setDate(LocalDateTime.now());
                 payment.setPaymentMethod(String.valueOf(PaymentMethod.MoMo));
+
+                // 5. Update Order status to PROCESSING when payment successful
+                Order order = payment.getOrder();
+                order.setStatus(com.notfound.bookstore.model.enums.OrderStatus.PROCESSING);
+                orderRepository.save(order);
+
+                // 6. Create shipment order (same as VNPay)
+                try {
+                    shipmentService.createShipmentOrder(order);
+                    log.info("Shipment order created for order: {}", order.getOrderID());
+                } catch (Exception e) {
+                    log.error("Failed to create shipment for order {}: {}", order.getOrderID(), e.getMessage(), e);
+                    // Don't fail the payment if shipment creation fails
+                }
+
+                log.info("Payment completed for order: {}. Order status changed to PROCESSING", order.getOrderID());
             } else {
                 payment.setStatus(PaymentStatus.FAILED);
                 log.warn("MoMo payment failed: {} - {}", callback.getResultCode(), callback.getMessage());
@@ -243,5 +306,22 @@ public class MoMoServiceImpl {
         }
         long timestamp = System.currentTimeMillis();
         return String.format("PAY_%s_%d", randomPart.toString(), timestamp);
+    }
+
+    /**
+     * Lấy redirectUrl từ Payment entity theo transactionId
+     *
+     * @param transactionId Transaction ID của payment
+     * @return redirectUrl đã lưu khi tạo payment, hoặc null nếu không tìm thấy
+     */
+    public String getRedirectUrlByTransactionId(String transactionId) {
+        try {
+            Payment payment = paymentRepository.findPaymentByTransactionId(transactionId)
+                    .orElse(null);
+            return payment != null ? payment.getRedirectUrl() : null;
+        } catch (Exception e) {
+            log.error("Error getting redirectUrl for transactionId: {}", transactionId, e);
+            return null;
+        }
     }
 }

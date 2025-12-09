@@ -29,6 +29,7 @@ public enum ErrorCode {
     ERROR_ENCODE(HttpStatus.INTERNAL_SERVER_ERROR, 3005, "Error encoding URL parameters."),
     ERROR_CREATE_HMACSHA512(HttpStatus.INTERNAL_SERVER_ERROR, 3000, "Error creating HMAC-SHA512 signature."),
     INVALID_PAYMENT_SIGNATURE(HttpStatus.BAD_REQUEST, 3001, "Invalid Payment signature."),
+    INVALID_PAYMENT_CALLBACK(HttpStatus.BAD_REQUEST, 3006, "Invalid payment callback data."),
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, 3002, "Payment amount mismatch."),
     PAYMENT_TRANSACTION_FAILED(HttpStatus.BAD_REQUEST, 3003, "Payment transaction failed."),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, 3004, "Payment not found"),
@@ -80,8 +81,23 @@ public enum ErrorCode {
     // ==== Lỗi Quản lý Người dùng ====
     USER_HAS_ORDERS(HttpStatus.CONFLICT, 2010, "Cannot delete user with existing orders."),
     CANNOT_DELETE_ADMIN(HttpStatus.FORBIDDEN, 2011, "Cannot delete admin user."),
-    CANNOT_BAN_ADMIN(HttpStatus.FORBIDDEN, 2012, "Cannot ban admin user.");
+    CANNOT_BAN_ADMIN(HttpStatus.FORBIDDEN, 2012, "Cannot ban admin user."),
 
+    // ==== Lỗi Danh Sách Yêu Thích (Wishlist) ====
+    BOOK_ALREADY_IN_WISHLIST(HttpStatus.FORBIDDEN,4001, "Book already in wishlist"),
+    BOOK_NOT_IN_WISHLIST(HttpStatus.FORBIDDEN, 4002, "Book not in wishlist"),
+    WISHLIST_EMPTY(HttpStatus.FORBIDDEN,4003, "Wishlist is empty"),
+
+    // ==== Lỗi Vận chuyển (Shipment) ====
+    SHIPMENT_NOT_FOUND(HttpStatus.NOT_FOUND, 7001, "Shipment not found."),
+    SHIPMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, 7002, "Shipment already exists for this order."),
+    SHIPMENT_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7003, "Failed to create shipment."),
+    GHN_API_ERROR(HttpStatus.BAD_GATEWAY, 7004, "GHN API error occurred."),
+    GHN_INVALID_RESPONSE(HttpStatus.BAD_GATEWAY, 7005, "Invalid response from GHN API."),
+    SHIPMENT_CANNOT_CANCEL(HttpStatus.BAD_REQUEST, 7006, "Cannot cancel shipment in current status."),
+    SHIPMENT_INVALID_STATUS(HttpStatus.BAD_REQUEST, 7007, "Invalid shipment status transition."),
+    SHIPMENT_CANCEL_FAILED(HttpStatus.BAD_REQUEST, 5006, "Failed to cancel shipment"),
+    INVALID_SHIPPING_ADDRESS(HttpStatus.BAD_REQUEST, 7008, "Invalid shipping address for shipment.");
 
     private final HttpStatus httpStatus;
     private final int code;

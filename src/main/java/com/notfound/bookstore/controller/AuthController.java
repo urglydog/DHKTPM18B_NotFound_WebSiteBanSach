@@ -2,6 +2,7 @@ package com.notfound.bookstore.controller;
 
 import com.notfound.bookstore.exception.ErrorCode;
 import com.notfound.bookstore.exception.AppException;
+import com.notfound.bookstore.model.dto.request.authorrequest.RefreshTokenRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.EmailRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.LoginRequest;
 import com.notfound.bookstore.model.dto.request.userrequest.RegisterRequest;
@@ -19,8 +20,13 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.notfound.bookstore.model.dto.response.userresponse.UserResponse;
+import com.notfound.bookstore.security.SecurityUtils;
+import com.notfound.bookstore.model.mapper.UserMapper;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -31,6 +37,7 @@ import java.util.Random;
  * Controller xử lý các chức năng xác thực và phân quyền
  * Bao gồm đăng ký, đăng nhập, quên mật khẩu và OAuth với Google
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -41,12 +48,16 @@ public class AuthController {
     RedisService redisService;
     UserService userService;
     EmailService emailService;
+    SecurityUtils securityUtils;
+    UserMapper userMapper;
 
     /**
      * Đăng ký tài khoản mới
      *
-     * @param request Thông tin đăng ký bao gồm username, email, mật khẩu và các thông tin cá nhân
-     * @return Thông tin xác thực sau khi đăng ký thành công (token và thông tin user)
+     * @param request Thông tin đăng ký bao gồm username, email, mật khẩu và các
+     *                thông tin cá nhân
+     * @return Thông tin xác thực sau khi đăng ký thành công (token và thông tin
+     *         user)
      */
     @PostMapping("/register")
     public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -62,7 +73,8 @@ public class AuthController {
      * Đăng nhập vào hệ thống
      *
      * @param request Thông tin đăng nhập (email và mật khẩu)
-     * @return Thông tin xác thực sau khi đăng nhập thành công (token và thông tin user)
+     * @return Thông tin xác thực sau khi đăng nhập thành công (token và thông tin
+     *         user)
      */
     @PostMapping("/login")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -75,7 +87,8 @@ public class AuthController {
     }
 
     @PutMapping("/change-password")
-    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request, Authentication authentication) {
+    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
@@ -126,7 +139,8 @@ public class AuthController {
      * Xác thực OTP và đặt lại mật khẩu mới
      * Người dùng chỉ được nhập sai OTP tối đa 5 lần
      *
-     * @param request Thông tin bao gồm email, OTP, mật khẩu mới và xác nhận mật khẩu
+     * @param request Thông tin bao gồm email, OTP, mật khẩu mới và xác nhận mật
+     *                khẩu
      * @return Kết quả đặt lại mật khẩu
      */
     @PostMapping("/verify-otp")
@@ -258,15 +272,70 @@ public class AuthController {
         try {
             AuthResponse authResponse = authService.handleGoogleOAuthCallback(code);
 
-            // Truyền token cho FE qua query param (hoặc có thể dùng cookie tùy thiết kế)
-            String redirectUrl = "http://localhost:3000/?token=" +
-                    URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8);
+            // Xây dựng URL với token và refreshToken
+            // Không gửi user object trong URL để tránh URL quá dài
+            // Frontend sẽ tự gọi /api/user/me để lấy user info
+            StringBuilder redirectUrl = new StringBuilder("http://localhost:3000/?");
+            redirectUrl.append("token=").append(URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
 
-            response.sendRedirect(redirectUrl);
+            if (authResponse.getRefreshToken() != null) {
+                redirectUrl.append("&refreshToken=")
+                        .append(URLEncoder.encode(authResponse.getRefreshToken(), StandardCharsets.UTF_8));
+            }
+
+            response.sendRedirect(redirectUrl.toString());
+        } catch (com.notfound.bookstore.exception.AppException e) {
+            // Log lỗi từ AppException
+            log.error("Google OAuth AppException: {}", e.getMessage(), e);
+            String errorUrl = "http://localhost:3000/?error=" +
+                    URLEncoder.encode("google_login_failed", StandardCharsets.UTF_8);
+            response.sendRedirect(errorUrl);
         } catch (Exception e) {
+            // Log lỗi không mong đợi
+            log.error("Unexpected error during Google OAuth: {}", e.getMessage(), e);
             String errorUrl = "http://localhost:3000/?error=" +
                     URLEncoder.encode("google_login_failed", StandardCharsets.UTF_8);
             response.sendRedirect(errorUrl);
         }
+    }
+
+    /**
+     * Alias endpoint để hỗ trợ /api/auth/me (tương thích với frontend)
+     * GET /api/auth/me
+     * 
+     * Lưu ý: Endpoint chính là /api/user/me, endpoint này chỉ để tương thích
+     * 
+     * @return Thông tin user hiện tại
+     */
+    @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    public ApiResponse<UserResponse> getCurrentUserAlias() {
+        log.warn("GET /api/auth/me - Using deprecated endpoint. Please use /api/user/me instead");
+
+        var currentUser = securityUtils.getCurrentUser();
+        UserResponse userResponse = userMapper.toUserResponse(currentUser);
+
+        return ApiResponse.<UserResponse>builder()
+                .code(1000)
+                .message("Lấy thông tin user thành công")
+                .result(userResponse)
+                .build();
+    }
+
+    /**
+     * Làm mới access token bằng refresh token
+     * Sử dụng khi access token hết hạn để lấy token mới mà không cần đăng nhập lại
+     *
+     * @param request Chứa refresh token
+     * @return Token mới (access token và refresh token mới)
+     */
+    @PostMapping("/refresh-token")
+    public ApiResponse<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        AuthResponse authResponse = authService.refreshToken(request.getRefreshToken());
+        return ApiResponse.<AuthResponse>builder()
+                .code(1000)
+                .message("Làm mới token thành công")
+                .result(authResponse)
+                .build();
     }
 }

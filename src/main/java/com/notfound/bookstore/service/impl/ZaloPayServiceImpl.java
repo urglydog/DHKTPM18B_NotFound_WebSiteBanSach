@@ -32,7 +32,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ZaloPayServiceImpl {
+public class ZaloPayServiceImpl implements com.notfound.bookstore.service.ZaloPayService {
 
     private final ZaloPayUtil zaloPay;
     private final ObjectMapper objectMapper;
@@ -40,8 +40,10 @@ public class ZaloPayServiceImpl {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
+    private final ShipmentServiceImpl shipmentService;
 
     @Transactional
+    @Override
     public CreatePaymentResponse createOrderTransaction(PaymentRequest body) {
         Order order = orderRepository.findById(body.getOrderId())
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
@@ -108,6 +110,7 @@ public class ZaloPayServiceImpl {
         }
     }
 
+    @Override
     public ZaloPayCallBackResponseDTO processCallback(ZaloPayCallbackRequest body) {
         String reqMac = HMACUtil.HMacHexStringEncode(HMACUtil.HMACSHA256, properties.getZap_Key2(), body.getData());
         if (reqMac != null && reqMac.equals(body.getMac())) {
@@ -131,10 +134,19 @@ public class ZaloPayServiceImpl {
                 paymentRepository.save(payment);
 
                 Order order = payment.getOrder();
-                order.setStatus(OrderStatus.COMPLETED);
+                order.setStatus(OrderStatus.PROCESSING);
                 orderRepository.save(order);
 
-                log.info("Payment updated: {} - ZP Trans: {}", appTransId, zpTransId);
+                // Create shipment order (same as VNPay and MoMo)
+                try {
+                    shipmentService.createShipmentOrder(order);
+                    log.info("Shipment order created for order: {}", order.getOrderID());
+                } catch (Exception e) {
+                    log.error("Failed to create shipment for order {}: {}", order.getOrderID(), e.getMessage(), e);
+                    // Don't fail the payment if shipment creation fails
+                }
+
+                log.info("Payment updated: {} - ZP Trans: {}. Order status changed to PROCESSING", appTransId, zpTransId);
 
                 return ZaloPayCallBackResponseDTO.builder()
                         .returnCode(1)

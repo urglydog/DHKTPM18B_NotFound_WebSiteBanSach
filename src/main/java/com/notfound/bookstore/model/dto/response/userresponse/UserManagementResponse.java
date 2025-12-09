@@ -19,6 +19,7 @@ public class UserManagementResponse {
     String email;
     String fullName;
     String phoneNumber;
+    String gender;
     String avatarUrl;
     String role;
     String status;
