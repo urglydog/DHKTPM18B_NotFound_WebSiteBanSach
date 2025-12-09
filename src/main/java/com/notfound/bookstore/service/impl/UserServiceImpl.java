@@ -43,6 +43,7 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
 
     PasswordEncoder passwordEncoder;
     UserRepository userRepository;
+    com.notfound.bookstore.service.ImageService imageService;
 
     @Override
     public boolean existsByEmail(String email) {
@@ -50,9 +51,9 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
     }
 
     @Override
-    public void resetPassword(String email, String newPassword){
+    public void resetPassword(String email, String newPassword) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(()-> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
@@ -67,14 +68,14 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
         // Tạo Pageable
         int page = filterRequest.getPage() != null ? filterRequest.getPage() : 0;
         int size = filterRequest.getSize() != null ? filterRequest.getSize() : 10;
-        
+
         String sortBy = filterRequest.getSortBy() != null ? filterRequest.getSortBy() : "username";
         String sortDirection = filterRequest.getSortDirection() != null ? filterRequest.getSortDirection() : "asc";
-        
-        Sort sort = sortDirection.equalsIgnoreCase("desc") 
-            ? Sort.by(sortBy).descending() 
-            : Sort.by(sortBy).ascending();
-        
+
+        Sort sort = sortDirection.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
         Pageable pageable = PageRequest.of(page, size, sort);
 
         // Parse role
@@ -89,11 +90,10 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
 
         // Lấy users theo filter
         Page<User> userPage = userRepository.findByFilters(
-            filterRequest.getSearch(),
-            role,
-            filterRequest.getStatus(),
-            pageable
-        );
+                filterRequest.getSearch(),
+                role,
+                filterRequest.getStatus(),
+                pageable);
 
         // Map to DTO
         return userPage.map(this::mapToUserManagementResponse);
@@ -103,7 +103,7 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
     @Transactional(readOnly = true)
     public UserDetailResponse getUserById(UUID id) {
         log.info("Getting user detail by id: {}", id);
-        
+
         User user = userRepository.findByIdWithOrders(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
@@ -289,13 +289,13 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                 .mapToLong(u -> u.getOrders() != null ? u.getOrders().size() : 0)
                 .sum();
 
-        BigDecimal avgRevenuePerUser = totalUsers > 0 
-            ? totalRevenue.divide(BigDecimal.valueOf(totalUsers), 2, RoundingMode.HALF_UP)
-            : BigDecimal.ZERO;
+        BigDecimal avgRevenuePerUser = totalUsers > 0
+                ? totalRevenue.divide(BigDecimal.valueOf(totalUsers), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
         BigDecimal avgOrderValue = totalOrders > 0
-            ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP)
-            : BigDecimal.ZERO;
+                ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
         // Get top users
         List<UserStatsResponse.TopUserResponse> topSpenders = getTopSpenders(5);
@@ -310,8 +310,8 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                 .totalCustomers(totalCustomers)
                 .totalGuests(totalGuests)
                 .newUsersThisMonth(0L) // TODO: Implement
-                .newUsersThisWeek(0L)  // TODO: Implement
-                .newUsersToday(0L)     // TODO: Implement
+                .newUsersThisWeek(0L) // TODO: Implement
+                .newUsersToday(0L) // TODO: Implement
                 .totalRevenue(totalRevenue)
                 .avgRevenuePerUser(avgRevenuePerUser)
                 .avgOrderValue(avgOrderValue)
@@ -351,17 +351,53 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
     }
 
     @Override
+    @Transactional
+    public UserResponse updateProfile(String username,
+            com.notfound.bookstore.model.dto.request.userrequest.UpdateProfileRequest request) {
+        log.info("Updating profile for user: {}", username);
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (request.getFullName() != null) {
+            user.setFullName(request.getFullName());
+        }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getGender() != null) {
+            user.setGender(request.getGender());
+        }
+        if (request.getDateOfBirth() != null) {
+            user.setDateOfBirth(request.getDateOfBirth());
+        }
+
+        org.springframework.web.multipart.MultipartFile avatar = request.getAvatar();
+        if (avatar != null && !avatar.isEmpty()) {
+            // Upload avatar to Cloudinary
+            java.util.Map<String, Object> uploadResult = imageService.uploadImage(avatar, "bookstore/avatars");
+            String avatarUrl = (String) uploadResult.get("url");
+            user.setAvatar_url(avatarUrl);
+        }
+
+        User updatedUser = userRepository.save(user);
+        log.info("Updated profile successfully for user: {}", username);
+
+        return mapToUserResponse(updatedUser);
+    }
+
+    @Override
     public byte[] exportUsersToExcel() {
         try {
             log.info("Exporting all users to Excel...");
-            
+
             // Get all users
             List<User> users = userRepository.findAll();
-            
+
             // Create workbook and sheet
             Workbook workbook = new XSSFWorkbook();
             Sheet sheet = workbook.createSheet("Danh Sách Người Dùng");
-            
+
             // Create header style
             CellStyle headerStyle = workbook.createCellStyle();
             Font headerFont = workbook.createFont();
@@ -375,7 +411,7 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
             headerStyle.setBorderLeft(BorderStyle.THIN);
             headerStyle.setBorderRight(BorderStyle.THIN);
             headerStyle.setAlignment(HorizontalAlignment.CENTER);
-            
+
             // Create data style
             CellStyle dataStyle = workbook.createCellStyle();
             dataStyle.setBorderBottom(BorderStyle.THIN);
@@ -383,81 +419,81 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
             dataStyle.setBorderLeft(BorderStyle.THIN);
             dataStyle.setBorderRight(BorderStyle.THIN);
             dataStyle.setWrapText(true);
-            
+
             // Create header row
             Row headerRow = sheet.createRow(0);
             String[] columns = {
-                "STT", "Tên đăng nhập", "Email", "Họ và tên", "Số điện thoại", 
-                "Vai trò", "Trạng thái", "Ngày sinh", "Điểm", "Hạng thành viên",
-                "Email xác thực", "Tổng đơn hàng", "Tổng chi tiêu", "Ngày tạo", "Đăng nhập gần nhất"
+                    "STT", "Tên đăng nhập", "Email", "Họ và tên", "Số điện thoại",
+                    "Vai trò", "Trạng thái", "Ngày sinh", "Điểm", "Hạng thành viên",
+                    "Email xác thực", "Tổng đơn hàng", "Tổng chi tiêu", "Ngày tạo", "Đăng nhập gần nhất"
             };
-            
+
             for (int i = 0; i < columns.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(columns[i]);
                 cell.setCellStyle(headerStyle);
             }
-            
+
             // Create date format
             CellStyle dateStyle = workbook.createCellStyle();
             dateStyle.cloneStyleFrom(dataStyle);
             CreationHelper createHelper = workbook.getCreationHelper();
             dateStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd/MM/yyyy HH:mm"));
-            
+
             // Create currency format
             CellStyle currencyStyle = workbook.createCellStyle();
             currencyStyle.cloneStyleFrom(dataStyle);
             currencyStyle.setDataFormat(createHelper.createDataFormat().getFormat("#,##0 ₫"));
-            
+
             // Fill data rows
             int rowNum = 1;
             for (User user : users) {
                 Row row = sheet.createRow(rowNum++);
-                
+
                 // Calculate totals
                 int totalOrders = user.getOrders() != null ? user.getOrders().size() : 0;
-                BigDecimal totalSpent = user.getOrders() != null 
-                    ? user.getOrders().stream()
-                        .map(Order::getTotalAmount)
-                        .map(amount -> amount != null ? BigDecimal.valueOf(amount) : BigDecimal.ZERO)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                    : BigDecimal.ZERO;
-                
+                BigDecimal totalSpent = user.getOrders() != null
+                        ? user.getOrders().stream()
+                                .map(Order::getTotalAmount)
+                                .map(amount -> amount != null ? BigDecimal.valueOf(amount) : BigDecimal.ZERO)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        : BigDecimal.ZERO;
+
                 // STT
                 Cell cell0 = row.createCell(0);
                 cell0.setCellValue(rowNum - 1);
                 cell0.setCellStyle(dataStyle);
-                
+
                 // Username
                 Cell cell1 = row.createCell(1);
                 cell1.setCellValue(user.getUsername() != null ? user.getUsername() : "");
                 cell1.setCellStyle(dataStyle);
-                
+
                 // Email
                 Cell cell2 = row.createCell(2);
                 cell2.setCellValue(user.getEmail() != null ? user.getEmail() : "");
                 cell2.setCellStyle(dataStyle);
-                
+
                 // Full name
                 Cell cell3 = row.createCell(3);
                 cell3.setCellValue(user.getFullName() != null ? user.getFullName() : "");
                 cell3.setCellStyle(dataStyle);
-                
+
                 // Phone number
                 Cell cell4 = row.createCell(4);
                 cell4.setCellValue(user.getPhoneNumber() != null ? user.getPhoneNumber() : "");
                 cell4.setCellStyle(dataStyle);
-                
+
                 // Role
                 Cell cell5 = row.createCell(5);
                 cell5.setCellValue(user.getRole() != null ? user.getRole().name() : "");
                 cell5.setCellStyle(dataStyle);
-                
+
                 // Status
                 Cell cell6 = row.createCell(6);
                 cell6.setCellValue(user.getStatus() != null ? user.getStatus() : "active");
                 cell6.setCellStyle(dataStyle);
-                
+
                 // Date of birth
                 Cell cell7 = row.createCell(7);
                 if (user.getDateOfBirth() != null) {
@@ -467,32 +503,33 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                     cell7.setCellValue("");
                     cell7.setCellStyle(dataStyle);
                 }
-                
+
                 // Points
                 Cell cell8 = row.createCell(8);
                 cell8.setCellValue(user.getPoints() != null ? user.getPoints() : 0);
                 cell8.setCellStyle(dataStyle);
-                
+
                 // Membership tier
                 Cell cell9 = row.createCell(9);
                 cell9.setCellValue(user.getMembershipTier() != null ? user.getMembershipTier().name() : "");
                 cell9.setCellStyle(dataStyle);
-                
+
                 // Email verified
                 Cell cell10 = row.createCell(10);
-                cell10.setCellValue(user.getIsEmailVerified() != null && user.getIsEmailVerified() ? "Đã xác thực" : "Chưa xác thực");
+                cell10.setCellValue(user.getIsEmailVerified() != null && user.getIsEmailVerified() ? "Đã xác thực"
+                        : "Chưa xác thực");
                 cell10.setCellStyle(dataStyle);
-                
+
                 // Total orders
                 Cell cell11 = row.createCell(11);
                 cell11.setCellValue(totalOrders);
                 cell11.setCellStyle(dataStyle);
-                
+
                 // Total spent
                 Cell cell12 = row.createCell(12);
                 cell12.setCellValue(totalSpent.doubleValue());
                 cell12.setCellStyle(currencyStyle);
-                
+
                 // Created at
                 Cell cell13 = row.createCell(13);
                 if (user.getCreatedAt() != null) {
@@ -502,7 +539,7 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                     cell13.setCellValue("");
                     cell13.setCellStyle(dataStyle);
                 }
-                
+
                 // Last login
                 Cell cell14 = row.createCell(14);
                 if (user.getLastLogin() != null) {
@@ -513,24 +550,24 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                     cell14.setCellStyle(dataStyle);
                 }
             }
-            
+
             // Auto-size columns
             for (int i = 0; i < columns.length; i++) {
                 sheet.autoSizeColumn(i);
                 // Add some extra width
                 sheet.setColumnWidth(i, sheet.getColumnWidth(i) + 1000);
             }
-            
+
             // Write to byte array
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             workbook.write(outputStream);
             workbook.close();
-            
+
             byte[] excelData = outputStream.toByteArray();
             log.info("Exported {} users to Excel successfully. File size: {} bytes", users.size(), excelData.length);
-            
+
             return excelData;
-            
+
         } catch (Exception e) {
             log.error("Error exporting users to Excel: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to export users to Excel: " + e.getMessage(), e);
@@ -541,12 +578,12 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
 
     private UserManagementResponse mapToUserManagementResponse(User user) {
         int totalOrders = user.getOrders() != null ? user.getOrders().size() : 0;
-        BigDecimal totalSpent = user.getOrders() != null 
-            ? user.getOrders().stream()
-                .map(Order::getTotalAmount)
-                .map(amount -> amount != null ? BigDecimal.valueOf(amount) : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-            : BigDecimal.ZERO;
+        BigDecimal totalSpent = user.getOrders() != null
+                ? user.getOrders().stream()
+                        .map(Order::getTotalAmount)
+                        .map(amount -> amount != null ? BigDecimal.valueOf(amount) : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                : BigDecimal.ZERO;
 
         return UserManagementResponse.builder()
                 .id(user.getId())
@@ -554,6 +591,7 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
+                .gender(user.getGender())
                 .avatarUrl(user.getAvatar_url())
                 .role(user.getRole().name())
                 .status(user.getStatus() != null ? user.getStatus() : "active")
@@ -571,19 +609,19 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
     private UserDetailResponse mapToUserDetailResponse(User user) {
         int totalOrders = user.getOrders() != null ? user.getOrders().size() : 0;
         int totalReviews = user.getReviews() != null ? user.getReviews().size() : 0;
-        BigDecimal totalSpent = user.getOrders() != null 
-            ? user.getOrders().stream()
-                .map(Order::getTotalAmount)
-                .map(amount -> amount != null ? BigDecimal.valueOf(amount) : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-            : BigDecimal.ZERO;
+        BigDecimal totalSpent = user.getOrders() != null
+                ? user.getOrders().stream()
+                        .map(Order::getTotalAmount)
+                        .map(amount -> amount != null ? BigDecimal.valueOf(amount) : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                : BigDecimal.ZERO;
 
         LocalDateTime lastOrderDate = user.getOrders() != null && !user.getOrders().isEmpty()
-            ? user.getOrders().stream()
-                .map(Order::getOrderDate)
-                .max(LocalDateTime::compareTo)
-                .orElse(null)
-            : null;
+                ? user.getOrders().stream()
+                        .map(Order::getOrderDate)
+                        .max(LocalDateTime::compareTo)
+                        .orElse(null)
+                : null;
 
         return UserDetailResponse.builder()
                 .id(user.getId())
@@ -618,6 +656,7 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
+                .gender(user.getGender())
                 .role(user.getRole().name())
                 .status(user.getStatus() != null ? user.getStatus() : "active")
                 .dateOfBirth(user.getDateOfBirth())
@@ -626,17 +665,18 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
                 .isEmailVerified(user.getIsEmailVerified())
                 .authProvider(user.getAuthProvider() != null ? user.getAuthProvider().name() : null)
                 .lastLogin(user.getLastLogin())
+                .avatar(user.getAvatar_url())
                 .build();
     }
 
     private UserStatsResponse.TopUserResponse mapToTopUserResponse(User user) {
         int totalOrders = user.getOrders() != null ? user.getOrders().size() : 0;
-        BigDecimal totalSpent = user.getOrders() != null 
-            ? user.getOrders().stream()
-                .map(Order::getTotalAmount)
-                .map(amount -> amount != null ? BigDecimal.valueOf(amount) : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-            : BigDecimal.ZERO;
+        BigDecimal totalSpent = user.getOrders() != null
+                ? user.getOrders().stream()
+                        .map(Order::getTotalAmount)
+                        .map(amount -> amount != null ? BigDecimal.valueOf(amount) : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                : BigDecimal.ZERO;
 
         return UserStatsResponse.TopUserResponse.builder()
                 .userId(user.getId().toString())
