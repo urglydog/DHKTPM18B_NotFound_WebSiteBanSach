@@ -1,9 +1,6 @@
 package com.notfound.bookstore.service.impl;
 
-import com.notfound.bookstore.model.dto.request.bookrequest.BookFilterRequest;
-import com.notfound.bookstore.model.dto.request.bookrequest.BookSearchRequest;
-import com.notfound.bookstore.model.dto.request.bookrequest.BookSortRequest;
-import com.notfound.bookstore.model.dto.request.bookrequest.BookWithRating;
+import com.notfound.bookstore.model.dto.request.bookrequest.*;
 import com.notfound.bookstore.model.dto.response.bookresponse.BookResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.BookSummaryResponse;
 import com.notfound.bookstore.model.dto.response.bookresponse.PageResponse;
@@ -19,17 +16,11 @@ import com.notfound.bookstore.repository.CategoryRepository;
 import com.notfound.bookstore.service.QdrantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -182,6 +173,81 @@ public class BookServiceImpl implements BookService {
         return books.stream()
                 .map(bookMapper::toBookSummaryResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<BookSummaryResponse> getAllBooksOption(BookRequest bookRequest) {
+        // Chuyển đổi mảng String categoryIds thành List<UUID>
+        List<UUID> categoryIds = Collections.emptyList();
+        if (bookRequest.getDanhMuc() != null && bookRequest.getDanhMuc().length > 0) {
+            categoryIds = Arrays.stream(bookRequest.getDanhMuc())
+                    .map(UUID::fromString)
+                    .collect(Collectors.toList());
+        }
+
+        // Xác định Sort dựa trên option
+        String option = bookRequest.getOption() != null ? bookRequest.getOption() : "phobien";
+        Sort sort;
+
+        // Lưu ý: averageRating và reviewCount là aggregate function nên không sort được trong query
+        // Phải sort sau khi query xong
+        boolean needPostSort = false;
+        Sort.Direction postSortDirection = Sort.Direction.DESC;
+
+        switch (option) {
+            case "moinhat" -> sort = Sort.by(Sort.Direction.DESC, "b.createdAt");
+            case "thapdencao" -> sort = Sort.by(Sort.Direction.ASC, "b.discountPrice");
+            case "caodenthap" -> sort = Sort.by(Sort.Direction.DESC, "b.discountPrice");
+            case "danhgiacao", "phobien" -> {
+                sort = Sort.unsorted(); // Không sort trong query
+                needPostSort = true;
+                postSortDirection = option.equals("danhgiacao") ? Sort.Direction.DESC : Sort.Direction.DESC;
+            }
+            default -> sort = Sort.unsorted();
+        }
+
+        Pageable pageable = PageRequest.of(
+                bookRequest.getPage(),
+                bookRequest.getSize(),
+                sort);
+
+        Page<BookWithRating> resultPage = bookRepository.findByFiltersAndSort(
+                bookRequest.getMinPrice(),
+                bookRequest.getMaxPrice(),
+                bookRequest.getMinRating(),
+                categoryIds.isEmpty() ? null : categoryIds,
+                pageable);
+
+        // Chuyển đổi sang BookSummaryResponse
+        List<BookSummaryResponse> responseList = resultPage.getContent().stream()
+                .map(result -> {
+                    BookSummaryResponse response = bookMapper.toBookSummaryResponse(result.getBook());
+                    response.setAverageRating(result.getAverageRating());
+                    response.setReviewCount(result.getReviewCount().intValue());
+                    return response;
+                })
+                .collect(Collectors.toList());
+
+        // Sort lại nếu cần (cho averageRating hoặc reviewCount)
+        if (needPostSort) {
+            Comparator<BookSummaryResponse> comparator = option.equals("danhgiacao")
+                    ? Comparator.comparing(BookSummaryResponse::getAverageRating)
+                    : Comparator.comparing(BookSummaryResponse::getReviewCount);
+
+            if (postSortDirection == Sort.Direction.DESC) {
+                comparator = comparator.reversed();
+            }
+
+            responseList.sort(comparator);
+        }
+
+        Page<BookSummaryResponse> responsePage = new PageImpl<>(
+                responseList,
+                pageable,
+                resultPage.getTotalElements()
+        );
+
+        return bookMapper.toPageResponse(responsePage);
     }
 
     // Lấy danh sách sách gợi ý cho bạn

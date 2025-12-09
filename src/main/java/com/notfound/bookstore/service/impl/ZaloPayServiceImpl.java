@@ -40,6 +40,7 @@ public class ZaloPayServiceImpl implements com.notfound.bookstore.service.ZaloPa
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
+    private final ShipmentServiceImpl shipmentService;
 
     @Transactional
     @Override
@@ -133,10 +134,19 @@ public class ZaloPayServiceImpl implements com.notfound.bookstore.service.ZaloPa
                 paymentRepository.save(payment);
 
                 Order order = payment.getOrder();
-                order.setStatus(OrderStatus.COMPLETED);
+                order.setStatus(OrderStatus.PROCESSING);
                 orderRepository.save(order);
 
-                log.info("Payment updated: {} - ZP Trans: {}", appTransId, zpTransId);
+                // Create shipment order (same as VNPay and MoMo)
+                try {
+                    shipmentService.createShipmentOrder(order);
+                    log.info("Shipment order created for order: {}", order.getOrderID());
+                } catch (Exception e) {
+                    log.error("Failed to create shipment for order {}: {}", order.getOrderID(), e.getMessage(), e);
+                    // Don't fail the payment if shipment creation fails
+                }
+
+                log.info("Payment updated: {} - ZP Trans: {}. Order status changed to PROCESSING", appTransId, zpTransId);
 
                 return ZaloPayCallBackResponseDTO.builder()
                         .returnCode(1)
