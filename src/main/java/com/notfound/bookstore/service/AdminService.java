@@ -41,4 +41,6 @@ public interface AdminService {
     Page<CategoryResponse> getAllCategories(Pageable pageable);
 
     String uploadAvatar(MultipartFile image);
+
+    com.notfound.bookstore.model.dto.response.statistics.RevenueStatisticResponse getRevenueStatistics(java.time.LocalDate fromDate, java.time.LocalDate toDate);
 }

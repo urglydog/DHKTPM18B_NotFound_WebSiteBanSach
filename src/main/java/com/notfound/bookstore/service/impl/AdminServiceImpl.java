@@ -14,6 +14,18 @@ import com.notfound.bookstore.service.AdminService;
 import com.notfound.bookstore.service.GeminiService;
 import com.notfound.bookstore.service.ImageService;
 import com.notfound.bookstore.service.QdrantService;
+import com.notfound.bookstore.model.enums.OrderStatus;
+import com.notfound.bookstore.model.dto.response.statistics.RevenueStatisticResponse;
+import com.notfound.bookstore.model.dto.response.statistics.DailyRevenuePoint;
+import com.notfound.bookstore.model.dto.response.statistics.PercentageDTO;
+import com.notfound.bookstore.model.dto.response.statistics.CategoryPerformanceDTO;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+import com.notfound.bookstore.model.entity.OrderItem;
+import com.notfound.bookstore.model.entity.Category;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -24,10 +36,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,6 +54,7 @@ public class AdminServiceImpl implements AdminService {
     ImageService imageService;
     GeminiService geminiService;
     QdrantService qdrantService;
+    OrderRepository orderRepository;
 
     @Override
     public BookFullDetailResponse createBook(CreateBookRequest request) {
@@ -467,5 +476,143 @@ public class AdminServiceImpl implements AdminService {
         
         log.info("Avatar uploaded successfully: {}", avatarUrl);
         return avatarUrl;
+    }
+
+    @Override
+    public RevenueStatisticResponse getRevenueStatistics(LocalDate fromDate, LocalDate toDate) {
+        LocalDateTime start = fromDate.atStartOfDay();
+        LocalDateTime end = toDate.atTime(23, 59, 59);
+
+        // Fetch all orders in range
+        List<Order> orders = orderRepository.findByOrderDateBetween(start, end);
+
+        // Filter valid orders (COMPLETED or DELIVERED)
+        List<Order> validOrders = orders.stream()
+                .filter(o -> o.getStatus() == OrderStatus.COMPLETED || o.getStatus() == OrderStatus.DELIVERED)
+                .collect(Collectors.toList());
+
+        Double totalRevenue = validOrders.stream()
+                .mapToDouble(Order::getTotalAmount)
+                .sum();
+
+        Long totalOrders = (long) validOrders.size();
+
+        Map<LocalDate, List<Order>> ordersByDate = validOrders.stream()
+                .collect(Collectors.groupingBy(o -> o.getOrderDate().toLocalDate()));
+
+        List<DailyRevenuePoint> breakdown = new ArrayList<>();
+
+        LocalDate current = fromDate;
+        while (!current.isAfter(toDate)) {
+            List<Order> dailyOrders = ordersByDate.getOrDefault(current, new ArrayList<>());
+            Double dailyRevenue = dailyOrders.stream().mapToDouble(Order::getTotalAmount).sum();
+
+            breakdown.add(DailyRevenuePoint.builder()
+                    .date(current)
+                    .revenue(dailyRevenue)
+                    .orderCount((long) dailyOrders.size())
+                    .build());
+
+            current = current.plusDays(1);
+        }
+
+        // Calculate Revenue by Payment Method
+        Map<String, Double> revenueByPaymentMethodMap = validOrders.stream()
+                .collect(Collectors.groupingBy(
+                        order -> order.getPaymentMethod() != null ? order.getPaymentMethod() : "UNKNOWN",
+                        Collectors.summingDouble(Order::getTotalAmount)
+                ));
+
+        List<PercentageDTO> revenueByPaymentMethod = new ArrayList<>();
+        double sumRevenue = totalRevenue > 0 ? totalRevenue : 1.0; // Avoid division by zero
+
+        for (Map.Entry<String, Double> entry : revenueByPaymentMethodMap.entrySet()) {
+            double value = Math.round((entry.getValue() / sumRevenue) * 100.0 * 100.0) / 100.0; // Round to 2 decimals
+            revenueByPaymentMethod.add(PercentageDTO.builder()
+                    .category(entry.getKey())
+                    .value(value)
+                    .build());
+        }
+
+        // Calculate Category Performance with Real Growth
+        long daysDiff = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
+        LocalDate previousFromDate = fromDate.minusDays(daysDiff);
+        LocalDate previousToDate = fromDate.minusDays(1);
+        LocalDateTime prevStart = previousFromDate.atStartOfDay();
+        LocalDateTime prevEnd = previousToDate.atTime(23, 59, 59);
+
+        // Fetch previous period orders
+        log.info("Calculating growth. Current Period: {} to {}", fromDate, toDate);
+        log.info("Previous Period: {} to {}", previousFromDate, previousToDate);
+        List<Order> previousOrders = orderRepository.findByOrderDateBetween(prevStart, prevEnd);
+        log.info("Found {} total orders in previous period.", previousOrders.size());
+        if (!previousOrders.isEmpty()) {
+            previousOrders.stream().limit(5).forEach(o -> log.info("Sample Order Status: {} Date: {}", o.getStatus(), o.getOrderDate()));
+        }
+
+        List<Order> validPreviousOrders = previousOrders.stream()
+                .filter(o -> o.getStatus() == OrderStatus.COMPLETED || o.getStatus() == OrderStatus.DELIVERED)
+                .collect(Collectors.toList());
+
+        // Calculate Revenue by Category for Current Period
+        Map<String, Double> currentCategoryRevenue = new HashMap<>();
+        for (Order order : validOrders) {
+            if (order.getOrderItems() != null) {
+                for (OrderItem item : order.getOrderItems()) {
+                    // Assuming accessing book and categories is transactional/eager enough or lazily handled
+                    if (item.getBook() != null && item.getBook().getCategories() != null) {
+                        for (Category cat : item.getBook().getCategories()) {
+                            currentCategoryRevenue.merge(cat.getName(), item.getSubtotal(), Double::sum);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Calculate Revenue by Category for Previous Period
+        Map<String, Double> previousCategoryRevenue = new HashMap<>();
+        for (Order order : validPreviousOrders) {
+             if (order.getOrderItems() != null) {
+                for (OrderItem item : order.getOrderItems()) {
+                    if (item.getBook() != null && item.getBook().getCategories() != null) {
+                        for (Category cat : item.getBook().getCategories()) {
+                            previousCategoryRevenue.merge(cat.getName(), item.getSubtotal(), Double::sum);
+                        }
+                    }
+                }
+            }
+        }
+
+        List<CategoryPerformanceDTO> categoryPerformance = new ArrayList<>();
+        // Iterate over all categories found in current period (or should we include previous ones that dropped to 0? usually Top/Focus on current)
+        // Let's focus on top performing current categories
+        for (Map.Entry<String, Double> entry : currentCategoryRevenue.entrySet()) {
+            String categoryName = entry.getKey();
+            Double currentRev = entry.getValue();
+            Double previousRev = previousCategoryRevenue.getOrDefault(categoryName, 0.0);
+            
+            log.info("Category: {}, Current Rev: {}, Previous Rev: {}", categoryName, currentRev, previousRev);
+
+            double growth = 0.0;
+            if (previousRev > 0) {
+                growth = ((currentRev - previousRev) / previousRev) * 100.0;
+            } else if (currentRev > 0) {
+                growth = 100.0; // New revenue vs 0 previous
+            }
+
+            // Round growth to 1 decimal
+            growth = Math.round(growth * 10.0) / 10.0;
+
+            categoryPerformance.add(CategoryPerformanceDTO.builder()
+                    .category(categoryName)
+                    .revenue(currentRev)
+                    .growth(growth)
+                    .build());
+        }
+
+        // Sort by revenue desc
+        categoryPerformance.sort((a, b) -> b.getRevenue().compareTo(a.getRevenue()));
+
+        return new RevenueStatisticResponse(totalRevenue, totalOrders, breakdown, revenueByPaymentMethod, categoryPerformance);
     }
 }
