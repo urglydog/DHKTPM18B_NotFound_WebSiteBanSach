@@ -81,4 +81,41 @@ public class CategoryServiceImpl implements CategoryService {
 
         return builder.build();
     }
+
+    @Override
+    public java.util.List<com.notfound.bookstore.model.dto.response.categoryresponse.CategoryWithBookResponse> getAllCategoriesWithSampleBook() {
+        log.info("Fetching all categories with sample book");
+        java.util.List<Category> categories = categoryRepository.findAll();
+
+        return categories.stream()
+                .map(category -> {
+                    com.notfound.bookstore.model.dto.response.categoryresponse.CategoryWithBookResponse.CategoryWithBookResponseBuilder builder = com.notfound.bookstore.model.dto.response.categoryresponse.CategoryWithBookResponse
+                            .builder()
+                            .id(category.getId())
+                            .name(category.getName())
+                            .description(category.getDescription());
+
+                    // Get one sample book from this category
+                    if (category.getBooks() != null && !category.getBooks().isEmpty()) {
+                        com.notfound.bookstore.model.entity.Book sampleBook = category.getBooks().get(0);
+                        builder.sampleBook(mapToBookResponse(sampleBook));
+                    }
+
+                    return builder.build();
+                })
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    private com.notfound.bookstore.model.dto.response.bookresponse.BookResponse mapToBookResponse(
+            com.notfound.bookstore.model.entity.Book book) {
+        return com.notfound.bookstore.model.dto.response.bookresponse.BookResponse.builder()
+                .id(book.getId().toString())
+                .title(book.getTitle())
+                .price(book.getPrice())
+                .discountPrice(book.getDiscountPrice())
+                .imageUrls(book.getImages() != null ? book.getImages().stream()
+                        .map(com.notfound.bookstore.model.entity.BookImage::getUrl)
+                        .collect(java.util.stream.Collectors.toList()) : java.util.List.of())
+                .build();
+    }
 }

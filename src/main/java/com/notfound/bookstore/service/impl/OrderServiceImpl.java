@@ -372,12 +372,31 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public List<OrderResponse> getOrdersByStatus(OrderStatus status, LocalDateTime startDate, LocalDateTime endDate) {
+        List<Order> orders = orderRepository.findByStatusAndOrderDateBetween(status, startDate, endDate);
+        return orders.stream()
+                .map(order -> {
+                    List<OrderItem> orderItems = orderItemRepository.findByOrderOrderID(order.getOrderID());
+                    Double subtotal = orderItems.stream().mapToDouble(OrderItem::getSubtotal).sum();
+                    return buildOrderResponse(order, orderItems, order.getPromotion(),
+                            order.getDiscountAmount(), subtotal);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Double getTotalRevenue() {
         return orderRepository.findAll().stream()
                 .filter(order -> order.getStatus() == OrderStatus.COMPLETED ||
                                order.getStatus() == OrderStatus.DELIVERED)
                 .mapToDouble(Order::getTotalAmount)
                 .sum();
+    }
+
+    @Override
+    public Double getTotalRevenue(LocalDateTime startDate, LocalDateTime endDate) {
+        Double revenue = orderRepository.getTotalRevenueByDateRange(startDate, endDate);
+        return revenue != null ? revenue : 0.0;
     }
 
     @Override

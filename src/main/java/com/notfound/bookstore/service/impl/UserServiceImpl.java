@@ -277,7 +277,7 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
         long totalCustomers = userRepository.countByRole(Role.CUSTOMER);
         long totalGuests = userRepository.countByRole(Role.GUEST);
 
-        // Tính thống kê doanh thu
+        // Tính thống kê doanh thu (tất cả thời gian)
         List<User> allUsers = userRepository.findAll();
         BigDecimal totalRevenue = allUsers.stream()
                 .flatMap(u -> u.getOrders() != null ? u.getOrders().stream() : java.util.stream.Stream.empty())
@@ -288,6 +288,76 @@ public class UserServiceImpl implements com.notfound.bookstore.service.UserServi
         long totalOrders = allUsers.stream()
                 .mapToLong(u -> u.getOrders() != null ? u.getOrders().size() : 0)
                 .sum();
+
+        BigDecimal avgRevenuePerUser = totalUsers > 0
+                ? totalRevenue.divide(BigDecimal.valueOf(totalUsers), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        BigDecimal avgOrderValue = totalOrders > 0
+                ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        // Get top users
+        List<UserStatsResponse.TopUserResponse> topSpenders = getTopSpenders(5);
+        List<UserStatsResponse.TopUserResponse> topBuyers = getTopBuyers(5);
+
+        return UserStatsResponse.builder()
+                .totalUsers(totalUsers)
+                .activeUsers(activeUsers)
+                .inactiveUsers(inactiveUsers)
+                .bannedUsers(bannedUsers)
+                .totalAdmins(totalAdmins)
+                .totalCustomers(totalCustomers)
+                .totalGuests(totalGuests)
+                .newUsersThisMonth(0L) // TODO: Implement
+                .newUsersThisWeek(0L) // TODO: Implement
+                .newUsersToday(0L) // TODO: Implement
+                .totalRevenue(totalRevenue)
+                .avgRevenuePerUser(avgRevenuePerUser)
+                .avgOrderValue(avgOrderValue)
+                .totalOrders(totalOrders)
+                .topSpenders(topSpenders)
+                .topBuyers(topBuyers)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserStatsResponse getUserStatistics(LocalDateTime startDate, LocalDateTime endDate) {
+        log.info("Getting user statistics for date range: {} to {}", startDate, endDate);
+
+        long totalUsers = userRepository.count();
+        long activeUsers = userRepository.countByStatus("active");
+        long inactiveUsers = userRepository.countByStatus("inactive");
+        long bannedUsers = userRepository.countByStatus("banned");
+
+        long totalAdmins = userRepository.countByRole(Role.ADMIN);
+        long totalCustomers = userRepository.countByRole(Role.CUSTOMER);
+        long totalGuests = userRepository.countByRole(Role.GUEST);
+
+        // Tính thống kê doanh thu trong khoảng thời gian
+        List<User> allUsers = userRepository.findAll();
+        BigDecimal totalRevenue = allUsers.stream()
+                .flatMap(u -> u.getOrders() != null ? u.getOrders().stream() : java.util.stream.Stream.empty())
+                .filter(order -> {
+                    LocalDateTime orderDate = order.getOrderDate();
+                    return orderDate != null && 
+                           !orderDate.isBefore(startDate) && 
+                           !orderDate.isAfter(endDate);
+                })
+                .map(Order::getTotalAmount)
+                .map(amount -> amount != null ? BigDecimal.valueOf(amount) : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long totalOrders = allUsers.stream()
+                .flatMap(u -> u.getOrders() != null ? u.getOrders().stream() : java.util.stream.Stream.empty())
+                .filter(order -> {
+                    LocalDateTime orderDate = order.getOrderDate();
+                    return orderDate != null && 
+                           !orderDate.isBefore(startDate) && 
+                           !orderDate.isAfter(endDate);
+                })
+                .count();
 
         BigDecimal avgRevenuePerUser = totalUsers > 0
                 ? totalRevenue.divide(BigDecimal.valueOf(totalUsers), 2, RoundingMode.HALF_UP)
