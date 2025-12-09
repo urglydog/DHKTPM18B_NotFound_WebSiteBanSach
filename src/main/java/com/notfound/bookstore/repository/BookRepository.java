@@ -100,27 +100,20 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     //Tìm sách còn hàng
     Page<Book> findByStockQuantityGreaterThan(Integer minStock, Pageable pageable);
 
-        // Tìm theo nhiều authors
-        @Query("SELECT DISTINCT b FROM Book b JOIN b.authors a WHERE a.id IN :authorIds")
-        Page<Book> findByAuthorIds(@Param("authorIds") List<UUID> authorIds, Pageable pageable);
+    // Tìm theo ISBN
+    Book findByIsbn(String isbn);
 
-        // Tìm theo status
-        Page<Book> findByStatus(Book.Status status, Pageable pageable);
+    // Sắp xếp theo giá tăng dần
+    Page<Book> findAllByOrderByPriceAsc(Pageable pageable);
 
-        // Tìm sách còn hàng
-        Page<Book> findByStockQuantityGreaterThan(Integer minStock, Pageable pageable);
+    // Sắp xếp theo giá giảm dần
+    Page<Book> findAllByOrderByPriceDesc(Pageable pageable);
 
-        // Tìm theo ISBN
-        Book findByIsbn(String isbn);
+    // Sắp xếp theo ngày phát hành (mới nhất trước)
+    Page<Book> findAllByOrderByPublishDateDesc(Pageable pageable);
 
-        // Sắp xếp theo giá tăng dần
-        Page<Book> findAllByOrderByPriceAsc(Pageable pageable);
-
-        // Sắp xếp theo giá giảm dần
-        Page<Book> findAllByOrderByPriceDesc(Pageable pageable);
-
-        // Sắp xếp theo ngày phát hành (mới nhất trước)
-        Page<Book> findAllByOrderByPublishDateDesc(Pageable pageable);
+    // Sắp xếp theo ngày phát hành (cũ nhất trước)
+    Page<Book> findAllByOrderByPublishDateAsc(Pageable pageable);
 
     /**
      * Atomic update to decrease stock quantity - prevents race condition
@@ -142,25 +135,21 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     @Query("SELECT b FROM Book b LEFT JOIN b.reviews r GROUP BY b.id ORDER BY AVG(r.rating) DESC")
     Page<Book> findAllOrderByAverageRatingDesc(Pageable pageable);
 
-        // Sắp xếp theo tên sách (A → Z)
-        Page<Book> findAllByOrderByTitleAsc(Pageable pageable);
+    // Sắp xếp theo tên sách (A → Z)
+    Page<Book> findAllByOrderByTitleAsc(Pageable pageable);
 
-        // Sắp xếp theo tên sách (Z → A)
-        Page<Book> findAllByOrderByTitleDesc(Pageable pageable);
+    // Sắp xếp theo tên sách (Z → A)
+    Page<Book> findAllByOrderByTitleDesc(Pageable pageable);
 
-        // Sắp xếp theo đánh giá trung bình giảm dần (cao → thấp)
-        @Query("SELECT b FROM Book b LEFT JOIN b.reviews r GROUP BY b.id ORDER BY AVG(r.rating) DESC")
-        Page<Book> findAllOrderByAverageRatingDesc(Pageable pageable);
+    // Sắp xếp theo đánh giá trung bình tăng dần (thấp → cao)
+    @Query("SELECT b FROM Book b LEFT JOIN b.reviews r GROUP BY b.id ORDER BY AVG(r.rating) ASC")
+    Page<Book> findAllOrderByAverageRatingAsc(Pageable pageable);
 
-        // Sắp xếp theo đánh giá trung bình tăng dần (thấp → cao)
-        @Query("SELECT b FROM Book b LEFT JOIN b.reviews r GROUP BY b.id ORDER BY AVG(r.rating) ASC")
-        Page<Book> findAllOrderByAverageRatingAsc(Pageable pageable);
-
-        // Lấy tất cả sách với thông tin rating
-        @Query("SELECT b as book, COALESCE(AVG(r.rating), 0) as averageRating, COUNT(r) as reviewCount " +
-                        "FROM Book b LEFT JOIN b.reviews r " +
-                        "GROUP BY b.id")
-        Page<BookWithRating> findAllBooksWithRating(Pageable pageable);
+    // Lấy tất cả sách với thông tin rating
+    @Query("SELECT b as book, COALESCE(AVG(r.rating), 0) as averageRating, COUNT(r) as reviewCount " +
+                    "FROM Book b LEFT JOIN b.reviews r " +
+                    "GROUP BY b.id")
+    Page<BookWithRating> findAllBooksWithRating(Pageable pageable);
 
     // Sách gợi ý (Random)
     @Query(value = "SELECT * FROM books ORDER BY RAND()", nativeQuery = true)
