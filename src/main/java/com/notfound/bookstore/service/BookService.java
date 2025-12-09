@@ -35,4 +35,7 @@ public interface BookService {
     // Lấy danh sách sách theo danh mục phổ biến
     List<com.notfound.bookstore.model.dto.response.categoryresponse.CategoryBooksResponse> getBooksByPopularCategories(
             Integer categoryLimit, Integer bookLimit);
+
+    // Lấy danh sách sách theo ID danh mục
+    PageResponse<BookSummaryResponse> getBooksByCategory(String categoryId, Integer page, Integer pageSize);
 }

@@ -227,4 +227,29 @@ public class BookServiceImpl implements BookService {
             return new CategoryBooksResponse(categoryResponse, bookResponses);
         }).collect(Collectors.toList());
     }
+
+    @Override
+    public PageResponse<BookSummaryResponse> getBooksByCategory(String categoryId, Integer page, Integer pageSize) {
+        log.info("Getting books by category: {}", categoryId);
+
+        // Set default values
+        int pageNumber = (page != null && page >= 0) ? page : 0;
+        int size = (pageSize != null && pageSize > 0) ? pageSize : 10;
+
+        Pageable pageable = PageRequest.of(pageNumber, size);
+        UUID categoryUUID = UUID.fromString(categoryId);
+
+        Page<Book> booksPage = bookRepository.findByCategoryId(categoryUUID, pageable);
+
+        List<BookSummaryResponse> bookSummaries = booksPage.getContent().stream()
+                .map(bookMapper::toBookSummaryResponse)
+                .collect(Collectors.toList());
+
+        return PageResponse.<BookSummaryResponse>builder()
+                .content(bookSummaries)
+                .currentPage(booksPage.getNumber())
+                .totalPages(booksPage.getTotalPages())
+                .totalElements(booksPage.getTotalElements())
+                .build();
+    }
 }

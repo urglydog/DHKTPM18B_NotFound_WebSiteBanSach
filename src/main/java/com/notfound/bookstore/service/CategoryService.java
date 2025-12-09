@@ -19,4 +19,7 @@ public interface CategoryService {
 
     // Lấy danh sách danh mục phổ biến
     List<CategoryResponse> getPopularCategories(Integer limit);
+
+    // Lấy tất cả danh mục kèm theo 1 cuốn sách mẫu
+    List<com.notfound.bookstore.model.dto.response.categoryresponse.CategoryWithBookResponse> getAllCategoriesWithSampleBook();
 }
