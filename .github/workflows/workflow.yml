@@ -52,6 +52,7 @@ jobs:
             sudo systemctl restart bookstore
             sudo systemctl status bookstore -n 20
 
+
       # Deploy lên EC2-2
       - name: Stop old app on EC2-2
         uses: appleboy/ssh-action@v1.0.3
