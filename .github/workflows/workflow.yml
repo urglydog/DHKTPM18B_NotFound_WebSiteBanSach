@@ -1,0 +1,55 @@
+name: Deploy Spring Boot to Multiple AWS EC2 Instances
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        host: [ ${{ secrets.EC2_1_HOST }}, ${{ secrets.EC2_2_HOST }} ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Stop old app and remove old JAR
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ matrix.host }}
+          username: ${{ secrets.EC2_USERC }}
+          key: ${{ secrets.EC2_SSH_KEYC }}
+          script: |
+            sudo systemctl stop bookstore || true
+            sudo rm -f /opt/bookstore/*.jar
+
+      - name: Copy new JAR to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ matrix.host }}
+          username: ${{ secrets.EC2_USERC }}
+          key: ${{ secrets.EC2_SSH_KEYC }}
+          source: "target/*.jar"
+          target: "/opt/bookstore"
+
+      - name: Restart bookstore service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ matrix.host }}
+          username: ${{ secrets.EC2_USERC }}
+          key: ${{ secrets.EC2_SSH_KEYC }}
+          script: |
+            sudo systemctl restart bookstore
+            sudo systemctl status bookstore -n 20
