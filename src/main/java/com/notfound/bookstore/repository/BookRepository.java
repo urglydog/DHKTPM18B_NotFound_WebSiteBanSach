@@ -36,6 +36,10 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
         @Query("SELECT b FROM Book b LEFT JOIN b.orderItems oi GROUP BY b.id ORDER BY SUM(oi.quantity) DESC")
         List<Book> findBestSellingBooks(Pageable pageable);
 
+        // Sách gợi ý (Random)
+        @Query(value = "SELECT * FROM books ORDER BY RAND()", nativeQuery = true)
+        List<Book> findRandomBooks(Pageable pageable);
+
         // Sách mới nhất
         Page<Book> findByOrderByCreatedAtDesc(Pageable pageable);
 

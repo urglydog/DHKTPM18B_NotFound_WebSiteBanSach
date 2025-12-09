@@ -21,5 +21,6 @@ public interface UserMapper {
     @Mapping(source = "isEmailVerified", target = "isEmailVerified")
     @Mapping(source = "authProvider", target = "authProvider")
     @Mapping(source = "lastLogin", target = "lastLogin")
+    @Mapping(source = "avatar_url", target = "avatar")
     UserResponse toUserResponse(User user);
 }

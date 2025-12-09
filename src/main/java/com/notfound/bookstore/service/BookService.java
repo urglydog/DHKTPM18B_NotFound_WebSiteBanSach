@@ -31,4 +31,11 @@ public interface BookService {
     List<BookSummaryResponse> getBestSellingBooks(Integer limit);
 
     PageResponse<BookSummaryResponse> getAllBooksOption(BookRequest bookRequest);
+
+    // Lấy danh sách sách gợi ý cho bạn
+    List<BookSummaryResponse> getSuggestedBooks(Integer limit);
+
+    // Lấy danh sách sách theo danh mục phổ biến
+    List<com.notfound.bookstore.model.dto.response.categoryresponse.CategoryBooksResponse> getBooksByPopularCategories(
+            Integer categoryLimit, Integer bookLimit);
 }
