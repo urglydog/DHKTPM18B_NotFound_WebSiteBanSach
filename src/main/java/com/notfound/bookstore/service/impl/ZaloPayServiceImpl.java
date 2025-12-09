@@ -18,6 +18,8 @@ import com.notfound.bookstore.model.enums.PaymentStatus;
 import com.notfound.bookstore.model.mapper.PaymentMapper;
 import com.notfound.bookstore.repository.OrderRepository;
 import com.notfound.bookstore.repository.PaymentRepository;
+import com.notfound.bookstore.service.OrderTimeoutService;
+import com.notfound.bookstore.service.ShipmentService;
 import com.notfound.bookstore.util.HMACUtil;
 import com.notfound.bookstore.util.ZaloPayUtil;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +42,10 @@ public class ZaloPayServiceImpl implements com.notfound.bookstore.service.ZaloPa
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
-    private final ShipmentServiceImpl shipmentService;
+    private final ShipmentService shipmentService;
+    private final OrderTimeoutService orderTimeoutService;
+
+    private static final int PAYMENT_TIMEOUT_MINUTES = 15; // Timeout sau 15 phút
 
     @Transactional
     @Override
@@ -99,6 +104,10 @@ public class ZaloPayServiceImpl implements com.notfound.bookstore.service.ZaloPa
 
             paymentRepository.save(payment);
 
+            // Schedule order timeout after 15 minutes
+            orderTimeoutService.scheduleOrderTimeout(order.getOrderID(), PAYMENT_TIMEOUT_MINUTES);
+            log.info("Scheduled timeout for order {} in {} minutes", order.getOrderID(), PAYMENT_TIMEOUT_MINUTES);
+
             log.info("ZaloPay payment created successfully - Transaction ID: {}", appTransId);
 
             return paymentMapper.toSuccessResponse(payment, orderUrl);
@@ -136,6 +145,10 @@ public class ZaloPayServiceImpl implements com.notfound.bookstore.service.ZaloPa
                 Order order = payment.getOrder();
                 order.setStatus(OrderStatus.PROCESSING);
                 orderRepository.save(order);
+
+                // Cancel the timeout since payment is successful
+                orderTimeoutService.cancelOrderTimeout(order.getOrderID());
+                log.info("Cancelled timeout for order {} - payment successful", order.getOrderID());
 
                 // Create shipment order (same as VNPay and MoMo)
                 try {
@@ -193,5 +206,27 @@ public class ZaloPayServiceImpl implements com.notfound.bookstore.service.ZaloPa
 //            throw new BadRequestException("Error when get order transaction");
 //        }
 //    }
+
+    /**
+     * Lấy redirectUrl từ Payment entity theo transactionId
+     * @param transactionId Transaction ID của payment (app_trans_id)
+     * @return redirectUrl hoặc null nếu không tìm thấy
+     */
+    public String getRedirectUrlByTransactionId(String transactionId) {
+        try {
+            Payment payment = paymentRepository.findPaymentByTransactionId(transactionId)
+                    .orElse(null);
+
+            if (payment != null) {
+                return payment.getRedirectUrl();
+            }
+
+            log.warn("Payment not found for transactionId: {}", transactionId);
+            return null;
+        } catch (Exception e) {
+            log.error("Error getting redirectUrl for transactionId {}: {}", transactionId, e.getMessage());
+            return null;
+        }
+    }
 
 }
