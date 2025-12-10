@@ -134,22 +134,11 @@ public class SecurityConfig {
         public CorsConfigurationSource corsConfigurationSource() {
             CorsConfiguration configuration = new CorsConfiguration();
 
-            // Cho phép tất cả origin
             configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-
-            // Cho phép tất cả HTTP methods
             configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-
-            // Cho phép tất cả headers
             configuration.setAllowedHeaders(Arrays.asList("*"));
-
-            // Cho phép gửi credentials (cookies, authorization headers)
             configuration.setAllowCredentials(true);
-
-            // Cache preflight response trong 1 giờ
             configuration.setMaxAge(3600L);
-
-            // Expose các headers để frontend có thể đọc
             configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Total-Count"));
 
             UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
